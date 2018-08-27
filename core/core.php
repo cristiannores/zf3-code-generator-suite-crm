@@ -7,10 +7,19 @@ require_once __DIR__ . '/../generators/ModelGenerator.php';
 require_once __DIR__ . '/../generators/MapperGenerator.php';
 require_once __DIR__ . '/../testing/DatabaseTest.php';
 
-$mappers = scandir(__DIR__ . '/../mappers');
+
+$mappers = scandir(__DIR__ . '/../mappers/base');
 foreach ($mappers as $mapper) {
     if ($mapper !== '.' && $mapper !== '..') {
-        require_once __DIR__ . '/../mappers/' . $mapper;
+        require_once __DIR__ . '/../mappers/base/' . $mapper;
+    }
+}
+$mappers = scandir(__DIR__ . '/../mappers');
+foreach ($mappers as $mapper) {
+    if (!is_dir(__DIR__ . '/../mappers/' . $mapper)) {
+        if ($mapper !== '.' && $mapper !== '..') {
+            require_once __DIR__ . '/../mappers/' . $mapper;
+        }
     }
 }
 $models = scandir(__DIR__ . '/../classes');

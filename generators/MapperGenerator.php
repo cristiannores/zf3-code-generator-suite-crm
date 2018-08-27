@@ -63,7 +63,7 @@ class MapperGenerator {
             $class->addProperty('adapter', null, PropertyGenerator::FLAG_PROTECTED);
             $class->addProperty('id', null, PropertyGenerator::FLAG_PROTECTED);
             $class->addProperty('now', null, PropertyGenerator::FLAG_PROTECTED);
-            $class->setName($this->getCamelCase($tableName) . 'Mapper');
+            $class->setName($this->getCamelCase($tableName) . 'MapperBase');
             $class->addUse('Zend\Db\Adapter\Adapter');
             $class->addUse('Zend\Db\Adapter\Driver\ResultInterface');
             $class->addUse('Zend\Db\ResultSet\HydratingResultSet');
@@ -80,7 +80,7 @@ class MapperGenerator {
             $bodyMethodExchangeArray = '';
 
 
-            $this->checkIfDirExist();
+            $this->checkIfDirExist($this->dir . 'base/');
             $class->addMethodFromGenerator($this->generateConstructorMethod());
             $class->addMethodFromGenerator($this->generateStoreMethod());
             $class->addMethodFromGenerator($this->generateUpdateMethod());
@@ -97,15 +97,45 @@ class MapperGenerator {
             $class->addMethodFromGenerator($this->generateSetDefaultInsertValues($columns));
             $class->addMethodFromGenerator($this->generateUnsetNullsInUpdate());
 
-
-
             $file = $this->generateFile($tableName, $class);
 
+
+
+            $this->generateMapper();
 
 
             $this->filesCreated[] = $file;
         }
         return $this->filesCreated;
+    }
+
+    private function generateMapper() {
+
+        $bodyConstructor = ''
+                . "\n"
+                . 'parent::__construct($adapter);'
+                . "\n"
+        ;
+
+        $constructorMethod = new MethodGenerator();
+        $constructorMethod->setName('__construct');
+        $constructorMethod->setParameter('adapter');
+        $constructorMethod->setBody($bodyConstructor);
+        
+        $class = new ClassGenerator();
+        $class->setName($this->getCamelCase($this->actual_table).'Mapper');
+        $class->addMethodFromGenerator($constructorMethod);
+        $class->setExtendedClass($this->getCamelCase($this->actual_table).'MapperBase');
+
+        $this->checkIfDirExist($this->dir);
+                
+        $file = new FileGenerator();
+        $file->setClass($class);
+        @$model = $file->generate();
+        $file_saved = $this->dir . '' . $this->getCamelCase($this->actual_table) . 'Mapper.php';
+        file_put_contents($file_saved, $model);
+
+        return $file_saved;
     }
 
     private function generateConstructorMethod() {
@@ -542,7 +572,17 @@ class MapperGenerator {
     private function generateSetDefaultInsertValues($columns) {
         // Agregando body de metodo store
         $body = "\n"
-                . '$data = $this->setObjectData($data);';
+                . '$data = $this->setObjectData($data);'
+                . "\n"
+                . 'global $current_user;'
+                . "\n"
+                . 'if ( $current_user instanceof User ){'
+                . "\n"
+                . "\t" . '$id = $current_user->id();'
+                . "\n"
+                . '}'
+
+        ;
 
         if (count($columns) > 0) {
             foreach ($columns as $column) {
@@ -581,6 +621,9 @@ class MapperGenerator {
                 break;
             case 'deleted':
                 $default = '$data->' . $column->getName() . ' = 0';
+            case 'modified_user_id':
+            case 'assigned_user_id':
+                $default = '$data->' . $column->getName() . ' =  ($id !== null) ? $id : $data[\'' . $column->getName() . '\'];';
             default:
 
                 break;
@@ -600,7 +643,7 @@ class MapperGenerator {
         $file = new FileGenerator();
         $file->setClass($class);
         @$model = $file->generate();
-        $file_saved = $this->dir . $this->getCamelCase($fileName) . 'Mapper.php';
+        $file_saved = $this->dir . 'base/' . $this->getCamelCase($fileName) . 'MapperBase.php';
         file_put_contents($file_saved, $model);
         return $file_saved;
     }
