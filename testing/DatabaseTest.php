@@ -32,6 +32,8 @@ class DatabaseTest {
         $contactMapper = new ContactsMapper($this->adapter);
         $result = $contactMapper->getAll();
         foreach($result as $r){
+            
+            
             Debug::dump($r);
         }
     }

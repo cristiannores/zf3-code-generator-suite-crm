@@ -6,9 +6,11 @@ use Zend\Debug\Debug;
 
 require __DIR__ . './core/core.php';
 
-//$testing = new DatabaseTest();
-//
-//$result = $testing->testGetAllSuite();
+$testing = new DatabaseTest();
+
+$result = $testing->testGetAllSuite();
+
+exit;
 
 $data = new stdClass();
 $data->first_name = 'Cristian2';
