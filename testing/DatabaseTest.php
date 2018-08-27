@@ -14,6 +14,56 @@ class DatabaseTest {
         $this->adapter = $db->getAdapter();
     }
 
+    public function testInsertSuite() {
+
+        $data = [];
+        $data['first_name'] = uniqid();
+        $data['last_name'] = uniqid();
+        $data['assigned_user_id'] = 'Testing';
+        $data['assigned_user_id'] = 0;
+        $data['lead_source'] = 'TESTING_CRM_MAPPER';
+
+        $contactMapper = new ContactsMapper($this->adapter);
+        $result = $contactMapper->store($data);
+        Debug::dump($result);
+    }
+
+    public function testGetAllSuite() {
+        $contactMapper = new ContactsMapper($this->adapter);
+        $result = $contactMapper->getAll();
+        foreach($result as $r){
+            Debug::dump($r);
+        }
+    }
+
+    public function testGetSuite($id) {
+        $contactMapper = new ContactsMapper($this->adapter);
+        $result = $contactMapper->get($id);
+        Debug::dump($result);
+    }
+
+    public function testDeleteSuite($id, $soft = true) {
+
+
+        $contactMapper = new ContactsMapper($this->adapter);
+        $result = $contactMapper->delete($id, $soft);
+        Debug::dump($result);
+    }
+
+    public function testUpdateSuite() {
+
+        $data = [];
+        $data['first_name'] = 'UP' . uniqid();
+        $data['last_name'] = 'UP' . uniqid();
+        $data['assigned_user_id'] = 'Testing';
+        $data['assigned_user_id'] = 0;
+        $data['lead_source'] = 'TESTING_CRM_MAPPER';
+
+        $contactMapper = new ContactsMapper($this->adapter);
+        $result = $contactMapper->update($data, '7ea18172-ac31-68b1-5e76-5b84156216d6');
+        Debug::dump($result);
+    }
+
     public function testInsertMultiple() {
         $statement = $this->adapter->createStatement('INSERT INTO CURSOS (nombre, descripcion) VALUES (:uno, :dos)');
         $statement->prepare();
@@ -63,7 +113,6 @@ class DatabaseTest {
         foreach ($result as $key => $value) {
             Debug::dump($value);
         }
-        
     }
 
     public function testUpdate() {

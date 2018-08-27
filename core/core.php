@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . './Database.php';
+require_once __DIR__ . './Utils.php';
 require_once __DIR__ . '/../generators/ModelGenerator.php';
 require_once __DIR__ . '/../generators/MapperGenerator.php';
 require_once __DIR__ . '/../testing/DatabaseTest.php';

@@ -16,22 +16,45 @@ class MapperGenerator {
     protected $dir;
     protected $filesCreated = [];
     protected $actual_table;
+    protected $table_cstm_exists;
+    protected $tables;
+    protected $tablesAllowed;
 
     public function __construct($dir = __DIR__ . '/../mappers/') {
         $this->dir = $dir;
         $db = new Database();
         $this->adapter = $db->getAdapter();
         $this->metadata = Factory::createSourceFromAdapter($this->adapter);
+        $this->getTablesToGenerate();
     }
 
     public function generate() {
 
-        $tableNames = $this->metadata->getTableNames();
-        foreach ($tableNames as $tableName) {
+        $this->tables = $this->metadata->getTableNames();
+        foreach ($this->tables as $tableName) {
+
+            // Generate only tables allowed
+            if (!in_array($tableName, $this->tablesAllowed)) {
+                continue;
+            }
+            // Salto las tablas cstm para la generacion de mappers
+            if (substr($tableName, -5) === 'cstm') {
+                continue;
+            }
+            // cheking if table cstm exists
+            $this->table_cstm_exists = false;
+            if (in_array($tableName . '_cstm', $this->tables)) {
+                $this->table_cstm_exists = true;
+            }
+
+
+
             $this->actual_table = $tableName;
             $class = new ClassGenerator();
             $class->addProperty('adapter', null, PropertyGenerator::FLAG_PROTECTED);
-            $class->setName($this->getCamelCase($tableName) . 'Mapper');            
+            $class->addProperty('id', null, PropertyGenerator::FLAG_PROTECTED);
+            $class->addProperty('now', null, PropertyGenerator::FLAG_PROTECTED);            
+            $class->setName($this->getCamelCase($tableName) . 'Mapper');
             $class->addUse('Zend\Db\Adapter\Adapter');
             $class->addUse('Zend\Db\Adapter\Driver\ResultInterface');
             $class->addUse('Zend\Db\ResultSet\HydratingResultSet');
@@ -42,7 +65,7 @@ class MapperGenerator {
             $class->addUse('Zend\Db\Sql\Select');
             $class->addUse('Zend\Db\Sql\Sql');
             $class->addUse('Zend\Db\Sql\Update');
-                
+
             $table = $this->metadata->getTable($tableName);
             $properties = [];
             $bodyMethodExchangeArray = '';
@@ -56,6 +79,16 @@ class MapperGenerator {
             $class->addMethodFromGenerator($this->generateGetMethod());
             $class->addMethodFromGenerator($this->generateGetAllMethod());
             $class->addMethodFromGenerator($this->generateSetObjectDataMethod());
+            if ($this->table_cstm_exists) {
+                $class->addMethodFromGenerator($this->generateSetObjectDataCstmMethod());
+            }
+            $class->addMethodFromGenerator($this->generateGenerateIdMethod());
+
+            $columns = $this->metadata->getTable($tableName)->getColumns();
+            $class->addMethodFromGenerator($this->generateSetDefaultInsertValues($columns));
+            $class->addMethodFromGenerator($this->generateUnsetNullsInUpdate());
+
+
 
             $file = $this->generateFile($tableName, $class);
             Zend\Debug\Debug::dump('Archivo generado');
@@ -71,9 +104,15 @@ class MapperGenerator {
         $parameterAdapter = new \Zend\Code\Generator\ParameterGenerator();
         $parameterAdapter->setName('adapter');
         // Generating body
-        $body = "\n";
-        $body .= '$this->adapter = $adapter;';
-        $body .= "\n";
+        $body = "\n"
+                . '$this->adapter = $adapter;'
+                . "\n"
+                . '$date_now_utc = (new \DateTime( \'now\',  new \DateTimeZone( \'UTC\' ) ));'
+                . "\n"
+                . '$this->now = $date_now_utc->format(\'Y-m-d h:i:s\');'
+                . "\n"
+        ;
+
 
 
 
@@ -89,13 +128,21 @@ class MapperGenerator {
     private function generateStoreMethod() {
         // Agregando body de metodo store
         $body = "\n"
-                . '$data = ($data instanceof ' . $this->getCamelCase($this->actual_table) . ') ? (array) $data : (array) $this->setObjectData($data);'
+                . '$this->generateId();'
+                . "\n"
+                . '$data_table = ($data instanceof ' . $this->getCamelCase($this->actual_table) . ') ? (array) $data : (array) $this->setObjectData($data);'
+                . "\n"
+                . '$data_table = $this->generateSetDefaultInsertValues($data);'
+                . "\n"
+                . '$data_table[\'id\'] = $this->id;'
+                . "\n"
                 . "\n"
                 . '$sql = new Sql($this->adapter);'
                 . "\n"
+                . "\n"
                 . '$insert = new Insert(\'' . $this->actual_table . '\');'
                 . "\n"
-                . '$insert->values($data);'
+                . '$insert->values($data_table);'
                 . "\n"
                 . '$result = $sql->prepareStatementForSqlObject($insert)->execute();'
                 . "\n"
@@ -103,11 +150,35 @@ class MapperGenerator {
                 . "\n"
                 . "\t" . 'return false;'
                 . "\n"
-                . '} else {'
-                . "\n"
-                . "\t" . 'return $sql->getAdapter()->getDriver()->getLastGeneratedValue();'
-                . "\n"
                 . '}';
+
+        if ($this->table_cstm_exists) {
+            $body .= "\n"
+                    . "\n"
+                    . "// Generating insert in table cstm"
+                    . "\n"
+                    . '$data_table_cstm = ($data instanceof ' . $this->getCamelCase($this->actual_table) . 'Cstm) ? (array) $data : (array) $this->setObjectDataCstm($data);'
+                    . "\n"
+                    . '$data_table_cstm[\'id_c\'] = $this->id;'
+                    . "\n"
+                    . '$insert = new Insert(\'' . $this->actual_table . '_cstm' . '\');'
+                    . "\n"
+                    . '$insert->values($data_table_cstm);'
+                    . "\n"
+                    . '$result_cstm = $sql->prepareStatementForSqlObject($insert)->execute();'
+                    . "\n"
+                    . 'if ($result_cstm->getAffectedRows() === 0) {'
+                    . "\n"
+                    . "\t" . 'return false;'
+                    . "\n"
+                    . '}';
+        }
+
+        $body .= "\n"
+                . "\n"
+                . 'return $this->id;';
+
+
 
 
 
@@ -127,22 +198,46 @@ class MapperGenerator {
     private function generateUpdateMethod() {
         // Agregando body de metodo store
         $body = "\n"
-                . '$data = ($data instanceof ' . $this->getCamelCase($this->actual_table) . ') ? (array) $data : (array) $this->setObjectData($data);'
+                . '$data_table = ($data instanceof ' . $this->getCamelCase($this->actual_table) . ') ? (array) $data : (array) $this->setObjectData($data);'
                 . "\n"
-                . 'unset($data[\'id\']);'
+                . 'unset($data_table[\'id\']);'
+                . "\n"
+                . '$data_table = $this->unsetNullsInUpdate($data_table);'
                 . "\n"
                 . '$sql = new Sql($this->adapter);'
                 . "\n"
                 . '$update = new Update(\'' . $this->actual_table . '\');'
                 . "\n"
-                . '$update->set($data);'
+                . '$update->set($data_table);'
                 . "\n"
                 . '$update->where([\'id\' => $id]);'
                 . "\n"
                 . '$result = $sql->prepareStatementForSqlObject($update)->execute();'
                 . "\n"
-                . 'return $result->getAffectedRows();'
         ;
+
+        if ($this->table_cstm_exists) {
+            $body .= "\n"
+                    . '$data_table_cstm = ($data instanceof ' . $this->getCamelCase($this->actual_table) . 'Cstm) ? (array) $data : (array) $this->setObjectDataCstm($data);'
+                    . "\n"
+                    . '$data_table_cstm[\'id_c\']= $id;'
+                    . "\n"
+                    . '$data_table_cstm = $this->unsetNullsInUpdate($data_table_cstm);'
+                    . "\n"
+                    . '$sql = new Sql($this->adapter);'
+                    . "\n"
+                    . '$update = new Update(\'' . $this->actual_table . '_cstm\');'
+                    . "\n"
+                    . '$update->set($data_table_cstm);'
+                    . "\n"
+                    . '$update->where([\'id_c\' => $id]);'
+                    . "\n"
+                    . '$result_cstm = $sql->prepareStatementForSqlObject($update)->execute();'
+                    . "\n"
+                    . 'return $result->getAffectedRows();'
+
+            ;
+        }
 
 
 
@@ -165,13 +260,41 @@ class MapperGenerator {
         $body = "\n"
                 . '$sql = new Sql($this->adapter);'
                 . "\n"
-                . '$delete = new Delete(\'' . $this->actual_table . '\');'
+                . 'if ( !$softDelete){'
                 . "\n"
-                . '$delete->where([\'id\' => $id]);'
+                . "\t" . '$delete = new Delete(\'' . $this->actual_table . '\');'
                 . "\n"
-                . '$result = $sql->prepareStatementForSqlObject($delete)->execute();'
+                . "\t" . '$delete->where([\'id\' => $id]);'
                 . "\n"
-                . 'return $result->getAffectedRows();'
+                . "\t" . '$result = $sql->prepareStatementForSqlObject($delete)->execute();'
+                . "\n"
+                . "\n";
+
+        if ($this->table_cstm_exists) {
+            $body .= "\t" . '$delete_cstm = new Delete(\'' . $this->actual_table . '_cstm\');'
+                    . "\n"
+                    . "\t" . '$delete_cstm->where([\'id_c\' => $id]);'
+                    . "\n"
+                    . "\t" . '$result_cstm = $sql->prepareStatementForSqlObject($delete_cstm)->execute();'
+                    . "\n"
+                    . "\t" . 'return $result->getAffectedRows();'
+                    . "\n";
+        }
+        $body .= '} else { '
+                . "\n"
+                . "\n"
+                . "\t" . '$delete_soft = new Update(\'' . $this->actual_table . '\');'
+                . "\n"
+                . "\t" . '$delete_soft->set([\'deleted\' => 1]);'
+                . "\n"
+                . "\t" . '$delete_soft->where([\'id\' => $id]);'
+                . "\n"
+                . "\t" . '$result = $sql->prepareStatementForSqlObject($delete_soft)->execute();'
+                . "\n"
+                . "\t" . 'return $result->getAffectedRows();'
+                . "\n"
+                . '}'
+                . "\n"
         ;
 
 
@@ -213,7 +336,7 @@ class MapperGenerator {
                 . "\n"
                 . 'if ( $result->count() > 0){'
                 . "\n"
-                . "\t" . 'return $this->setObjectData($result->current());'
+                . "\t" . '$result = (array) $this->setObjectData($result->current());'
                 . "\n"
                 . '}else{'
                 . "\n"
@@ -221,6 +344,36 @@ class MapperGenerator {
                 . "\n"
                 . '}'
         ;
+
+        if ($this->table_cstm_exists) {
+            $body .= "\n"
+                    . '$select_cstm = new Select(\'' . $this->actual_table . '_cstm\');'
+                    . "\n"
+                    . '$select_cstm->where([\'id_c\' => $id]);'
+                    . "\n"
+                    . '$result_cstm = $sql->prepareStatementForSqlObject($select_cstm)->execute();'
+                    . "\n"
+                    . 'if ( $result_cstm->count() > 0){'
+                    . "\n"
+                    . "\t" . '$result_cstm = (array) $this->setObjectDataCstm($result_cstm->current());'
+                    . "\n"
+                    . '}else{'
+                    . "\n"
+                    . "\t" . 'return false;'
+                    . "\n"
+                    . '}'
+            ;
+        }
+
+        // seting date time 
+
+        if ($this->table_cstm_exists) {
+            $body .= "\n"
+                    . 'return array_merge($result, $result_cstm);';
+        } else {
+            $body .= "\n"
+                    . 'return $result;';
+        }
 
 
 
@@ -249,26 +402,26 @@ class MapperGenerator {
                 . "\n"
                 . 'if ($result instanceof ResultInterface && $result->isQueryResult()) {'
                 . "\n"
-                . "\t".'$resultSet = new HydratingResultSet();'
+                . "\t" . '$resultSet = new HydratingResultSet();'
                 . "\n"
-                . "\t".'$resultSet->setHydrator(new ObjectProperty());'
+                . "\t" . '$resultSet->setHydrator(new ObjectProperty());'
                 . "\n"
-                . "\t".'$resultSet->setObjectPrototype(new ' . $this->getCamelCase($this->actual_table) . '());'
+                . "\t" . '$resultSet->setObjectPrototype(new ' . $this->getCamelCase($this->actual_table) . '());'
                 . "\n"
-                . "\t".'$resultSet->initialize($result);'
+                . "\t" . '$resultSet->initialize($result);'
                 . "\n"
-                . "\t".'return $resultSet;'
+                . "\t" . 'return $resultSet;'
                 . "\n"
                 . '} else {'
                 . "\n"
-                . "\t".'return false;'
+                . "\t" . 'return false;'
                 . "\n"
                 . '}'
         ;
 
         // Agregando metodo exchange array
         $method = new MethodGenerator();
-        $method->setName('getAll');        
+        $method->setName('getAll');
 
         $method->setDocBlock(DocBlockGenerator::fromArray([
                     'shortDescription' => 'Method to get all ' . $this->actual_table,
@@ -282,6 +435,8 @@ class MapperGenerator {
     private function generateSetObjectDataMethod() {
         // Agregando body de metodo store
         $body = "\n"
+                . '$data = (array) $data;'
+                . "\n"
                 . '$' . $this->actual_table . ' = new ' . $this->getCamelCase($this->actual_table) . '();'
                 . "\n" . '$' . $this->actual_table . '->exchangeArray($data);'
                 . "\n" . 'return $' . $this->actual_table . ';';
@@ -294,9 +449,134 @@ class MapperGenerator {
                     'shortDescription' => 'Return instance of ' . $this->getCamelCase($this->actual_table),
                     'longDescription' => null,
         ]));
-        $method->setVisibility($method::FLAG_PRIVATE);
+        $method->setVisibility(MethodGenerator::FLAG_PRIVATE);
         $method->setBody($body);
         return $method;
+    }
+
+    private function generateSetObjectDataCstmMethod() {
+        // Agregando body de metodo store
+        $body = "\n"
+                . '$data = (array) $data;'
+                . "\n"
+                . ''
+                . '$' . $this->actual_table . '_cstm = new ' . $this->getCamelCase($this->actual_table) . 'Cstm();'
+                . "\n" . '$' . $this->actual_table . '_cstm->exchangeArray($data);'
+                . "\n" . 'return $' . $this->actual_table . '_cstm;';
+
+        // Agregando metodo exchange array
+        $method = new MethodGenerator();
+        $method->setName('setObjectDataCstm');
+        $method->setParameter('data');
+        $method->setDocBlock(DocBlockGenerator::fromArray([
+                    'shortDescription' => 'Return instance of ' . $this->getCamelCase($this->actual_table) . 'Cstm',
+                    'longDescription' => null,
+        ]));
+        $method->setVisibility(MethodGenerator::FLAG_PRIVATE);
+        $method->setBody($body);
+        return $method;
+    }
+
+    private function generateGenerateIdMethod() {
+        // Agregando body de metodo store
+        $body = "\n"
+                . '$this->id = create_guid();';
+
+        // Agregando metodo exchange array
+        $method = new MethodGenerator();
+        $method->setName('generateId');
+        $method->setDocBlock(DocBlockGenerator::fromArray([
+                    'shortDescription' => 'Generate an id for' . $this->getCamelCase($this->actual_table),
+                    'longDescription' => null,
+        ]));
+        $method->setVisibility(MethodGenerator::FLAG_PRIVATE);
+        $method->setBody($body);
+        return $method;
+    }
+
+    private function generateUnsetNullsInUpdate() {
+        // Agregando body de metodo store
+        $body = "\n"
+                . 'foreach ($data as $key => $value) {'
+                . "\n"
+                . "\t" . 'if ($value === null) {'
+                . "\n"
+                . "\t" . "\t" . ' unset($data[$key]);'
+                . "\n"
+                . "\t" . '}'
+                . "\n"
+                . '}'
+                . "\n"
+                . '  return $data;'
+        ;
+
+
+            
+
+        // Agregando metodo exchange array
+        $method = new MethodGenerator();
+        $method->setName('unsetNullsInUpdate');
+        $parameter = new Zend\Code\Generator\ParameterGenerator();
+        $parameter->setName('data');
+        $parameter->setPassedByReference(true);
+
+        $method->setParameter($parameter);
+        $method->setDocBlock(DocBlockGenerator::fromArray([
+                    'shortDescription' => 'Generate an id for' . $this->getCamelCase($this->actual_table),
+                    'longDescription' => null,
+        ]));
+        $method->setVisibility(MethodGenerator::FLAG_PRIVATE);
+        $method->setBody($body);
+        return $method;
+    }
+
+    private function generateSetDefaultInsertValues($columns) {
+        // Agregando body de metodo store
+        $body = "\n"
+                . '$data = $this->setObjectData($data);';
+
+        if (count($columns) > 0) {
+            foreach ($columns as $column) {
+                $data_default = $this->getDefaultInsertColumn($column);
+                if ($data_default !== 'null') {
+                    $body .= "\n" . $this->getDefaultInsertColumn($column) . ';';
+                }
+            }
+        }
+
+        $body .= "\n"
+                . 'return (array) $data;';
+
+
+        // Agregando metodo exchange array
+        $method = new MethodGenerator();
+        $method->setName('generateSetDefaultInsertValues');
+        $method->setParameter('data');
+        $method->setDocBlock(DocBlockGenerator::fromArray([
+                    'shortDescription' => 'Generate default Values for insert ' . $this->getCamelCase($this->actual_table),
+                    'longDescription' => null,
+        ]));
+        $method->setVisibility(MethodGenerator::FLAG_PRIVATE);
+        $method->setBody($body);
+        return $method;
+    }
+
+    private function getDefaultInsertColumn($column) {
+        \Zend\Debug\Debug::dump($column->getName());
+        $default = 'null';
+        switch ($column->getName()) {
+            case 'date_entered':
+            case 'date_modified':
+            case 'date_modified':
+                $default = '$data->' . $column->getName() . ' = $this->now';
+                break;
+            case 'deleted':
+                $default = '$data->' . $column->getName() . ' = 0';
+            default:
+
+                break;
+        }
+        return $default;
     }
 
     private function checkIfDirExist() {
@@ -332,6 +612,11 @@ class MapperGenerator {
             $data = 'null';
         }
         return $data;
+    }
+
+    private function getTablesToGenerate() {
+        require __DIR__ . './tablesToGenerate.php';
+        $this->tablesAllowed = $tables;
     }
 
 }

@@ -15,18 +15,36 @@ class ModelGenerator {
     protected $metadata;
     protected $dir;
     protected $filesCreated = [];
+    protected $tablesAllowed;
 
     public function __construct($dir = __DIR__ . '/../classes/') {
         $this->dir = $dir;
         $db = new Database();
         $this->adapter = $db->getAdapter();
         $this->metadata = Factory::createSourceFromAdapter($this->adapter);
+        $this->getTablesToGenerate();
     }
 
     public function generate() {
 
         $tableNames = $this->metadata->getTableNames();
         foreach ($tableNames as $tableName) {
+
+            // Generate only tables allowed
+
+            if (substr($tableName, -5) === '_cstm') {
+                $table_cstm = substr($tableName, 0, -5);
+
+                if (!in_array($table_cstm, $this->tablesAllowed)) {
+                    continue;
+                }
+            } else {
+                if (!in_array($tableName, $this->tablesAllowed)) {
+                    continue;
+                }
+            }
+
+
 
             $class = new ClassGenerator();
             $class->setName($this->getCamelCase($tableName));
@@ -150,21 +168,20 @@ class ModelGenerator {
                 . "\n"
                 . "}"
                 . "\n"
-         
                 . "\n"
                 . 'if ($this->id) {'
                 . "\n"
-                . "\t". '$validator = new Zend\Validator\ValidatorChain();'
+                . "\t" . '$validator = new Zend\Validator\ValidatorChain();'
                 . "\n"
-                . "\t". '$validator->attach(new Zend\Validator\Digits());'
-         . "\n"
-                . "\t". 'if (!$validator->isValid($this->id)) { '
+                . "\t" . '$validator->attach(new Zend\Validator\Digits());'
                 . "\n"
-                . "\t". "\t" . 'return false;'
+                . "\t" . 'if (!$validator->isValid($this->id)) { '
                 . "\n"
-               . "\t" . '}'
+                . "\t" . "\t" . 'return false;'
                 . "\n"
-            . '}'
+                . "\t" . '}'
+                . "\n"
+                . '}'
                 . "\n"
                 . 'return true;'
         ;
@@ -215,6 +232,12 @@ class ModelGenerator {
             $data = 'null';
         }
         return $data;
+    }
+
+    private function getTablesToGenerate() {
+        require __DIR__ . './tablesToGenerate.php';
+
+        $this->tablesAllowed = $tables;
     }
 
 }
