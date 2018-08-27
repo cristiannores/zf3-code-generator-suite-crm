@@ -205,7 +205,7 @@ class ModelGenerator {
 
     private function checkIfDirExist() {
 
-        if (!dir($this->dir)) {
+        if (@!dir($this->dir)) {
             mkdir($this->dir);
         }
     }

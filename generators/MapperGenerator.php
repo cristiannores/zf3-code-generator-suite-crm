@@ -27,6 +27,16 @@ class MapperGenerator {
         $this->adapter = $db->getAdapter();
         $this->metadata = Factory::createSourceFromAdapter($this->adapter);
         $this->getTablesToGenerate();
+        $this->generateDirectory();
+    }
+
+    private function generateDirectory() {
+        if (!file_exists($this->dir)) {
+            mkdir($this->dir, 0777, true);
+        }
+        if (!file_exists($this->dir.'base/')) {
+            mkdir($this->dir.'base/', 0777, true);
+        }
     }
 
     public function setTable($table) {
@@ -121,14 +131,14 @@ class MapperGenerator {
         $constructorMethod->setName('__construct');
         $constructorMethod->setParameter('adapter');
         $constructorMethod->setBody($bodyConstructor);
-        
+
         $class = new ClassGenerator();
-        $class->setName($this->getCamelCase($this->actual_table).'Mapper');
+        $class->setName($this->getCamelCase($this->actual_table) . 'Mapper');
         $class->addMethodFromGenerator($constructorMethod);
-        $class->setExtendedClass($this->getCamelCase($this->actual_table).'MapperBase');
+        $class->setExtendedClass($this->getCamelCase($this->actual_table) . 'MapperBase');
 
         $this->checkIfDirExist($this->dir);
-                
+
         $file = new FileGenerator();
         $file->setClass($class);
         @$model = $file->generate();
@@ -631,10 +641,11 @@ class MapperGenerator {
         return $default;
     }
 
-    private function checkIfDirExist() {
+    private function checkIfDirExist($dir) {
 
-        if (!dir($this->dir)) {
-            mkdir($this->dir);
+        
+        if (@!dir($dir)) {
+            mkdir($dir);
         }
     }
 
