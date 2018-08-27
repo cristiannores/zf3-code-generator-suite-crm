@@ -7,25 +7,31 @@ require_once __DIR__ . '/../generators/ModelGenerator.php';
 require_once __DIR__ . '/../generators/MapperGenerator.php';
 require_once __DIR__ . '/../testing/DatabaseTest.php';
 
-
-$mappers = scandir(__DIR__ . '/../mappers/base');
-foreach ($mappers as $mapper) {
-    if ($mapper !== '.' && $mapper !== '..') {
-        require_once __DIR__ . '/../mappers/base/' . $mapper;
-    }
-}
-$mappers = scandir(__DIR__ . '/../mappers');
-foreach ($mappers as $mapper) {
-    if (!is_dir(__DIR__ . '/../mappers/' . $mapper)) {
+if (is_dir(__DIR__ . '/../mappers/base')) {
+    $mappers = scandir(__DIR__ . '/../mappers/base');
+    foreach ($mappers as $mapper) {
         if ($mapper !== '.' && $mapper !== '..') {
-            require_once __DIR__ . '/../mappers/' . $mapper;
+            require_once __DIR__ . '/../mappers/base/' . $mapper;
         }
     }
 }
-$models = scandir(__DIR__ . '/../classes');
-foreach ($models as $model) {
-    if ($model !== '.' && $model !== '..') {
-        require_once __DIR__ . '/../classes/' . $model;
+if (is_dir(__DIR__ . '/../mappers')) {
+    $mappers = scandir(__DIR__ . '/../mappers');
+    foreach ($mappers as $mapper) {
+        if (!is_dir(__DIR__ . '/../mappers/' . $mapper)) {
+            if ($mapper !== '.' && $mapper !== '..') {
+                require_once __DIR__ . '/../mappers/' . $mapper;
+            }
+        }
+    }
+}
+
+if (is_dir(__DIR__ . '/../classes')) {
+    $models = scandir(__DIR__ . '/../classes');
+    foreach ($models as $model) {
+        if ($model !== '.' && $model !== '..') {
+            require_once __DIR__ . '/../classes/' . $model;
+        }
     }
 }
 
