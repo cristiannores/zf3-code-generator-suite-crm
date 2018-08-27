@@ -76,6 +76,7 @@ class ModelGenerator {
             $class->addMethodFromGenerator($this->generateConstructorMethod());
             $class->addMethodFromGenerator($this->generateExchangeArrayMethod($bodyMethodExchangeArray));
             $class->addMethodFromGenerator($this->generateGetCopyArrayMethod());
+            $class->addMethodFromGenerator($this->generateIsValidMethod());
             $file = $this->generateFile($tableName, $class);
 
 
@@ -83,19 +84,19 @@ class ModelGenerator {
         }
         return $this->filesCreated;
     }
-    
-     private function generateConstructorMethod() {
-        
+
+    private function generateConstructorMethod() {
+
         // Generating body
         $body = "\n";
         $body .= '$this->exchangeArray([]);';
         $body .= "\n";
-        
+
 
 
         $method = new MethodGenerator();
         $method->setName('__construct');
-        
+
         $method->setBody($body);
 
 
@@ -125,6 +126,57 @@ class ModelGenerator {
         $method->setDocBlock(DocBlockGenerator::fromArray([
                     'shortDescription' => 'Method get array copy',
                     'longDescription' => 'Get a copy of this object',
+        ]));
+
+        return $method;
+    }
+
+    private function generateIsValidMethod() {
+
+        // Parametro soft delete
+        $parameter = new \Zend\Code\Generator\ParameterGenerator();
+        $parameter->setName('data');
+        $valueGenerator = new Zend\Code\Generator\ValueGenerator();
+        $valueGenerator->setType('null');
+        $valueGenerator->setValue('null');
+
+        $parameter->setDefaultValue($valueGenerator);
+
+
+        $body = "\n"
+                . 'if ( $data ) {'
+                . "\n"
+                . "\t" . '$data = $this->exchangeArray($data);'
+                . "\n"
+                . "}"
+                . "\n"
+         
+                . "\n"
+                . 'if ($this->id) {'
+                . "\n"
+                . "\t". '$validator = new Zend\Validator\ValidatorChain();'
+                . "\n"
+                . "\t". '$validator->attach(new Zend\Validator\Digits());'
+         . "\n"
+                . "\t". 'if (!$validator->isValid($this->id)) { '
+                . "\n"
+                . "\t". "\t" . 'return false;'
+                . "\n"
+               . "\t" . '}'
+                . "\n"
+            . '}'
+                . "\n"
+                . 'return true;'
+        ;
+
+        //Agregando metodo get array copy
+        $method = new MethodGenerator();
+        $method->setName('isValid');
+        $method->setParameter($parameter);
+        $method->setBody($body);
+        $method->setDocBlock(DocBlockGenerator::fromArray([
+                    'shortDescription' => 'Method to validate data object',
+                    'longDescription' => null,
         ]));
 
         return $method;

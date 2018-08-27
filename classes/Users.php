@@ -207,6 +207,25 @@ class Users
         return get_object_vars($this);
     }
 
+    /**
+     * Method to validate data object
+     */
+    public function isValid($data = null)
+    {
+        if ( $data ) {
+        	$data = $this->exchangeArray($data);
+        }
+
+        if ($this->id) {
+        	$validator = new Zend\Validator\ValidatorChain();
+        	$validator->attach(new Zend\Validator\Digits());
+        	if (!$validator->isValid($this->id)) { 
+        		return false;
+        	}
+        }
+        return true;
+    }
+
 
 }
 

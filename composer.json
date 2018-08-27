@@ -11,6 +11,9 @@
         "zendframework/zend-db": "dev-master",
         "zendframework/zend-hydrator": "dev-master",
         "zendframework/zend-debug": "dev-master",
-        "zendframework/zend-code": "dev-master"
+        "zendframework/zend-code": "dev-master",
+        "zendframework/zend-validator": "dev-master",
+        "zendframework/zend-http": "dev-master",
+        "zfcampus/zf-rest": "dev-master"
     }
 }

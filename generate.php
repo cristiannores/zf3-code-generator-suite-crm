@@ -1,4 +1,6 @@
 <?php
+
+use Zend\Debug\Debug;
 require __DIR__ . './core/core.php';
 $modelGenerator = new ModelGenerator();
 $archivos = $modelGenerator->generate();
