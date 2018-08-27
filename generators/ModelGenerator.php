@@ -16,6 +16,7 @@ class ModelGenerator {
     protected $dir;
     protected $filesCreated = [];
     protected $tablesAllowed;
+    protected $restric_table = null;
 
     public function __construct($dir = __DIR__ . '/../classes/') {
         $this->dir = $dir;
@@ -23,6 +24,10 @@ class ModelGenerator {
         $this->adapter = $db->getAdapter();
         $this->metadata = Factory::createSourceFromAdapter($this->adapter);
         $this->getTablesToGenerate();
+    }
+
+    public function setTable($table) {
+        $this->restric_table = $table;
     }
 
     public function generate() {
@@ -34,12 +39,11 @@ class ModelGenerator {
 
             if (substr($tableName, -5) === '_cstm') {
                 $table_cstm = substr($tableName, 0, -5);
+            }
 
-                if (!in_array($table_cstm, $this->tablesAllowed)) {
-                    continue;
-                }
-            } else {
-                if (!in_array($tableName, $this->tablesAllowed)) {
+            // Restrict only for a table
+            if ($this->restric_table !== null) {
+                if ($this->restric_table !== $tableName && $this->restric_table . '_cstm' !== $tableName) {
                     continue;
                 }
             }

@@ -19,6 +19,7 @@ class MapperGenerator {
     protected $table_cstm_exists;
     protected $tables;
     protected $tablesAllowed;
+    protected $restric_table = null;
 
     public function __construct($dir = __DIR__ . '/../mappers/') {
         $this->dir = $dir;
@@ -28,15 +29,18 @@ class MapperGenerator {
         $this->getTablesToGenerate();
     }
 
+    public function setTable($table) {
+        $this->restric_table = $table;
+    }
+
     public function generate() {
 
         $this->tables = $this->metadata->getTableNames();
         foreach ($this->tables as $tableName) {
 
-            // Generate only tables allowed
-            if (!in_array($tableName, $this->tablesAllowed)) {
-                continue;
-            }
+
+
+
             // Salto las tablas cstm para la generacion de mappers
             if (substr($tableName, -5) === 'cstm') {
                 continue;
@@ -47,13 +51,18 @@ class MapperGenerator {
                 $this->table_cstm_exists = true;
             }
 
-
+            // Restrict only for a table
+            if ($this->restric_table !== null) {
+                if ($this->restric_table !== $tableName) {
+                    continue;
+                }
+            }
 
             $this->actual_table = $tableName;
             $class = new ClassGenerator();
             $class->addProperty('adapter', null, PropertyGenerator::FLAG_PROTECTED);
             $class->addProperty('id', null, PropertyGenerator::FLAG_PROTECTED);
-            $class->addProperty('now', null, PropertyGenerator::FLAG_PROTECTED);            
+            $class->addProperty('now', null, PropertyGenerator::FLAG_PROTECTED);
             $class->setName($this->getCamelCase($tableName) . 'Mapper');
             $class->addUse('Zend\Db\Adapter\Adapter');
             $class->addUse('Zend\Db\Adapter\Driver\ResultInterface');
@@ -91,8 +100,8 @@ class MapperGenerator {
 
 
             $file = $this->generateFile($tableName, $class);
-            Zend\Debug\Debug::dump('Archivo generado');
-            Zend\Debug\Debug::dump($file);
+
+
 
             $this->filesCreated[] = $file;
         }
@@ -511,7 +520,7 @@ class MapperGenerator {
         ;
 
 
-            
+
 
         // Agregando metodo exchange array
         $method = new MethodGenerator();
@@ -562,7 +571,7 @@ class MapperGenerator {
     }
 
     private function getDefaultInsertColumn($column) {
-        \Zend\Debug\Debug::dump($column->getName());
+
         $default = 'null';
         switch ($column->getName()) {
             case 'date_entered':

@@ -2,10 +2,17 @@
 
 use Zend\Debug\Debug;
 require __DIR__ . './core/core.php';
-$modelGenerator = new ModelGenerator();
-$archivos = $modelGenerator->generate();
-Debug::dump($archivos);
 
-$maperGenerator = new MapperGenerator();
-$archivos = $maperGenerator->generate();
-Debug::dump($archivos);
+
+use Symfony\Component\Console\Application;
+
+$application = new Application();
+$application->setName('Generador de models y mappers SUITE CRM');
+$application->setVersion('1.0');
+
+$command = new \Symfony\Component\Console\Command\Command('run');
+$command->addArgument('table');
+
+$application->add(new GenerateCommand());
+$application->run();
+ 

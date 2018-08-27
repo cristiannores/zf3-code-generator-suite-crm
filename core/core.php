@@ -9,20 +9,23 @@ require_once __DIR__ . '/../testing/DatabaseTest.php';
 
 $mappers = scandir(__DIR__ . '/../mappers');
 foreach ($mappers as $mapper) {
-    if ($mapper !== '.' && $mapper !== '..'){
+    if ($mapper !== '.' && $mapper !== '..') {
         require_once __DIR__ . '/../mappers/' . $mapper;
     }
-    
 }
 $models = scandir(__DIR__ . '/../classes');
 foreach ($models as $model) {
-    if ($model !== '.' && $model !== '..'){
+    if ($model !== '.' && $model !== '..') {
         require_once __DIR__ . '/../classes/' . $model;
     }
 }
-/* 
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+
+$console = scandir(__DIR__ . '/../console-tool');
+foreach ($console as $c) {
+    if ($c !== '.' && $c !== '..') {
+        require_once __DIR__ . '/../console-tool/' . $c;
+    }
+}
+
+ 
 
