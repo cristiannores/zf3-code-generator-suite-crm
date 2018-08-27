@@ -30,11 +30,6 @@ $data->company_rut_c = 'COMPANY RUT';
 $data->vip_c = 1;
 
 
- 
-
-
-
-
 
 
 

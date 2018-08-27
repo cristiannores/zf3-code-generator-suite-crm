@@ -17,7 +17,8 @@ class GenerateCommand extends Command {
                 // the full command description shown when running the command with
                 // the "--help" option
                 ->setHelp('This command allows you to generate model and mapper')
-                ->addArgument('table')
+                ->addOption('table', 't', Symfony\Component\Console\Input\InputOption::VALUE_REQUIRED, 'Nombre de la tabla en base de datos')
+                ->addOption('type', 'tp', Symfony\Component\Console\Input\InputOption::VALUE_REQUIRED, 'Tipo (mapper | models | audit | all) ', 'all')
                 ->addOption('all', null, Symfony\Component\Console\Input\InputOption::VALUE_NONE, 'Agregar todas las tablas')
                 ->addOption('cstm', null, Symfony\Component\Console\Input\InputOption::VALUE_NONE, 'Inlcuir tablas cstm')
                 ->addOption('overwrite', null, Symfony\Component\Console\Input\InputOption::VALUE_NONE, 'Sobreescribe las tablas existentes')
@@ -25,54 +26,74 @@ class GenerateCommand extends Command {
     }
 
     protected function execute(InputInterface $input, OutputInterface $output) {
-
-        $outputStyle = new Symfony\Component\Console\Formatter\OutputFormatterStyle('red', 'yellow', array('bold', 'blink'));
-        $output->getFormatter()->setStyle('fire', $outputStyle);
+        $output->setFormatter(new Symfony\Component\Console\Formatter\OutputFormatter(true));
         $output->writeln([
             'Generando models y mapers ',
             '=========================',
         ]);
 
 
-        $table = $input->getArgument('table');
-
-        if ($table) {
+        $all = $input->getOption('all');
+        if ($all) {
             $output->writeln([
-                'Tabla seleccionada',
-                '=================',
-                $table
-            ]);
-            $output->writeln([
-                '=================',
-                'Generando',
-                '=================',
-                $table
+                '<comment>Generando Totas las tablas .... espere un momento</>',
+                '===============================',
             ]);
             $modelGenerator = new ModelGenerator();
-            if ($table) {
-                $modelGenerator->setTable($table);
-            }
-
             $archivos = $modelGenerator->generate();
+
             foreach ($archivos as $a) {
                 $output->writeln('Archivo generado : ' . $a);
             }
 
             $maperGenerator = new MapperGenerator();
-            if ($table) {
-                $maperGenerator->setTable($table);
-            }
             $archivos = $maperGenerator->generate();
 
             foreach ($archivos as $a) {
                 $output->writeln('Archivo generado : ' . $a);
             }
-        }else{
-             $output->writeln([
-                'DEBE SELECCIONAR UNA TABLA'
-            ]);
-             
+        } else {
+            $table = $input->getOption('table');
+
+            if ($table) {
+                $output->writeln([
+                    'Tabla seleccionada',
+                    '=================',
+                    $table
+                ]);
+                $output->writeln([
+                    '=================',
+                    "<comment>Generando</>",
+                    '=================',
+                    $table
+                ]);
+                $modelGenerator = new ModelGenerator();
+                if ($table) {
+                    $modelGenerator->setTable($table);
+                }
+
+                $archivos = $modelGenerator->generate();
+                foreach ($archivos as $a) {
+                    $output->writeln('Archivo generado : ' . $a);
+                }
+
+                $maperGenerator = new MapperGenerator();
+                if ($table) {
+                    $maperGenerator->setTable($table);
+                }
+                $archivos = $maperGenerator->generate();
+
+                foreach ($archivos as $a) {
+                    $output->writeln('Archivo generado : ' . $a);
+                }
+            } else {
+                $output->writeln([
+                    'DEBE SELECCIONAR UNA TABLA'
+                ]);
+            }
         }
+
+
 
 
 
