@@ -14,6 +14,7 @@
         "zendframework/zend-code": "dev-master",
         "zendframework/zend-validator": "dev-master",
         "zendframework/zend-http": "dev-master",
+        "zendframework/zend-log": "dev-master"
         
     }
 }
