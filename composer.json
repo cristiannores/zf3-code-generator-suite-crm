@@ -1,0 +1,16 @@
+{
+    "name": "vendor/testing",
+    "description": "Description of project testing.",
+    "authors": [
+        {
+            "name": "crist",
+            "email": "your@email.here"
+        }
+    ],
+    "require": {
+        "zendframework/zend-db": "dev-master",
+        "zendframework/zend-hydrator": "dev-master",
+        "zendframework/zend-debug": "dev-master",
+        "zendframework/zend-code": "dev-master"
+    }
+}
