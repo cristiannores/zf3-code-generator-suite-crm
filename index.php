@@ -1,7 +1,8 @@
 <?php
 
 ini_set('memory_limit', '1024M'); // or you could use 1G
-
+echo "hola";
+exit;
 use Zend\Debug\Debug;
 
 require __DIR__ . './core/core.php';
