@@ -8,6 +8,7 @@ use Zend\Code\Generator\PropertyGenerator;
 use Zend\Db\Adapter\Adapter;
 use Zend\Db\Metadata\Object\ColumnObject;
 use Zend\Db\Metadata\Source\Factory;
+use Symfony\Component\Console\Output\OutputInterface;
 
 class MapperGenerator {
 
@@ -20,9 +21,15 @@ class MapperGenerator {
     protected $tables;
     protected $tablesAllowed;
     protected $restric_table = null;
+    protected $output = null;
+    protected $overwrite = false;
 
-    public function __construct($dir = __DIR__ . '/../mappers/') {
-        $this->dir = $dir;
+    public function __construct($overwrite = false) {
+
+        $this->output = new \Symfony\Component\Console\Output\ConsoleOutput();
+
+        $this->overwrite = $overwrite;
+        $this->dir = $GLOBALS['suite_crm_path'] . '/custom/mappers/';
         $db = new Database();
         $this->adapter = $db->getAdapter();
         $this->metadata = Factory::createSourceFromAdapter($this->adapter);
@@ -34,8 +41,8 @@ class MapperGenerator {
         if (!file_exists($this->dir)) {
             mkdir($this->dir, 0777, true);
         }
-        if (!file_exists($this->dir.'base/')) {
-            mkdir($this->dir.'base/', 0777, true);
+        if (!file_exists($this->dir . 'base/')) {
+            mkdir($this->dir . 'base/', 0777, true);
         }
     }
 
@@ -46,9 +53,9 @@ class MapperGenerator {
     public function generate() {
 
         $this->tables = $this->metadata->getTableNames();
+
+
         foreach ($this->tables as $tableName) {
-
-
 
 
             // Salto las tablas cstm para la generacion de mappers
@@ -90,7 +97,7 @@ class MapperGenerator {
             $bodyMethodExchangeArray = '';
 
 
-            $this->checkIfDirExist($this->dir . 'base/');
+
             $class->addMethodFromGenerator($this->generateConstructorMethod());
             $class->addMethodFromGenerator($this->generateStoreMethod());
             $class->addMethodFromGenerator($this->generateUpdateMethod());
@@ -108,14 +115,19 @@ class MapperGenerator {
             $class->addMethodFromGenerator($this->generateUnsetNullsInUpdate());
 
             $file = $this->generateFile($tableName, $class);
+            $this->output->writeln('Archivo generado : ' . $file);
 
 
 
-            $this->generateMapper();
+            $file = $this->generateMapper();
+            if ($file) {
+                $this->output->writeln('Archivo generado : ' . $file);
+            }
 
 
             $this->filesCreated[] = $file;
         }
+
         return $this->filesCreated;
     }
 
@@ -137,15 +149,27 @@ class MapperGenerator {
         $class->addMethodFromGenerator($constructorMethod);
         $class->setExtendedClass($this->getCamelCase($this->actual_table) . 'MapperBase');
 
-        $this->checkIfDirExist($this->dir);
+
 
         $file = new FileGenerator();
         $file->setClass($class);
         @$model = $file->generate();
         $file_saved = $this->dir . '' . $this->getCamelCase($this->actual_table) . 'Mapper.php';
-        file_put_contents($file_saved, $model);
 
-        return $file_saved;
+        if (file_exists($file_saved)) {
+            
+            if ($this->overwrite) {
+                file_put_contents($file_saved, $model);
+                return $file_saved;
+            }
+        } else {
+            Zend\Debug\Debug::dump('no existe');
+            file_put_contents($file_saved, $model);
+            return $file_saved;
+        }
+
+
+        return false;
     }
 
     private function generateConstructorMethod() {
@@ -643,7 +667,7 @@ class MapperGenerator {
 
     private function checkIfDirExist($dir) {
 
-        
+
         if (@!dir($dir)) {
             mkdir($dir);
         }

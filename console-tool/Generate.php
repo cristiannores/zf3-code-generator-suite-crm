@@ -34,24 +34,23 @@ class GenerateCommand extends Command {
 
 
         $all = $input->getOption('all');
+        $overwrite = false;
+        if ($input->getOption('overwrite')) {
+            $overwrite = true;
+        }
         if ($all) {
             $output->writeln([
                 '<comment>Generando Totas las tablas .... espere un momento</>',
                 '===============================',
             ]);
-            $modelGenerator = new ModelGenerator();
+
+            $modelGenerator = new ModelGenerator($overwrite);
             $archivos = $modelGenerator->generate();
 
-            foreach ($archivos as $a) {
-                $output->writeln('Archivo generado : ' . $a);
-            }
 
-            $maperGenerator = new MapperGenerator();
+
+            $maperGenerator = new MapperGenerator($overwrite);
             $archivos = $maperGenerator->generate();
-
-            foreach ($archivos as $a) {
-                $output->writeln('Archivo generado : ' . $a);
-            }
         } else {
             $table = $input->getOption('table');
 
@@ -67,25 +66,19 @@ class GenerateCommand extends Command {
                     '=================',
                     $table
                 ]);
-                $modelGenerator = new ModelGenerator();
+                $modelGenerator = new ModelGenerator($overwrite);
                 if ($table) {
                     $modelGenerator->setTable($table);
                 }
 
                 $archivos = $modelGenerator->generate();
-                foreach ($archivos as $a) {
-                    $output->writeln('Archivo generado : ' . $a);
-                }
 
-                $maperGenerator = new MapperGenerator();
+
+                $maperGenerator = new MapperGenerator($overwrite);
                 if ($table) {
                     $maperGenerator->setTable($table);
                 }
                 $archivos = $maperGenerator->generate();
-
-                foreach ($archivos as $a) {
-                    $output->writeln('Archivo generado : ' . $a);
-                }
             } else {
                 $output->writeln([
                     'DEBE SELECCIONAR UNA TABLA'

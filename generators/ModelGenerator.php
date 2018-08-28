@@ -17,13 +17,24 @@ class ModelGenerator {
     protected $filesCreated = [];
     protected $tablesAllowed;
     protected $restric_table = null;
+    protected $output = null;
 
-    public function __construct($dir = __DIR__ . '/../classes/') {
-        $this->dir = $dir;
+    public function __construct() {
+
+        $this->output = new \Symfony\Component\Console\Output\ConsoleOutput();
+        $this->dir = $GLOBALS['suite_crm_path'] . '/custom/classes/';
         $db = new Database();
         $this->adapter = $db->getAdapter();
         $this->metadata = Factory::createSourceFromAdapter($this->adapter);
         $this->getTablesToGenerate();
+        $this->generateDirectory();
+    }
+
+    private function generateDirectory() {
+
+        if (!file_exists($this->dir)) {
+            mkdir($this->dir, 0777, true);
+        }
     }
 
     public function setTable($table) {
@@ -94,16 +105,17 @@ class ModelGenerator {
                 }
             }
 
-            $this->checkIfDirExist();
+
             $class->addMethodFromGenerator($this->generateConstructorMethod());
             $class->addMethodFromGenerator($this->generateExchangeArrayMethod($bodyMethodExchangeArray));
             $class->addMethodFromGenerator($this->generateGetCopyArrayMethod());
             $class->addMethodFromGenerator($this->generateIsValidMethod());
             $file = $this->generateFile($tableName, $class);
 
-
+            $this->output->writeln('Archivo generado : ' . $file);
             $this->filesCreated[] = $file;
         }
+
         return $this->filesCreated;
     }
 
@@ -201,13 +213,6 @@ class ModelGenerator {
         ]));
 
         return $method;
-    }
-
-    private function checkIfDirExist() {
-
-        if (@!dir($this->dir)) {
-            mkdir($this->dir);
-        }
     }
 
     private function generateFile($fileName, $class) {
