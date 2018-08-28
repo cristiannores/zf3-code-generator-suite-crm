@@ -157,12 +157,12 @@ class MapperGenerator {
         $file_saved = $this->dir . '' . $this->getCamelCase($this->actual_table) . 'Mapper.php';
 
         if (file_exists($file_saved)) {
-            
+
             if ($this->overwrite) {
                 file_put_contents($file_saved, $model);
                 return $file_saved;
             }
-        } else {            
+        } else {
             file_put_contents($file_saved, $model);
             return $file_saved;
         }
@@ -305,13 +305,18 @@ class MapperGenerator {
                     . '$update->where([\'id_c\' => $id]);'
                     . "\n"
                     . '$result_cstm = $sql->prepareStatementForSqlObject($update)->execute();'
-                    . "\n"
-                    . 'return $result->getAffectedRows();'
+                    . "\n";
+                    
 
             ;
         }
 
 
+        if ( $this->table_cstm_exists){
+            $body .= 'return $result->getAffectedRows() +  $result_cstm->getAffectedRows();';
+        }else{
+             $body .= 'return $result->getAffectedRows();';
+        }
 
         // Agregando metodo exchange array
         $method = new MethodGenerator();
@@ -518,7 +523,7 @@ class MapperGenerator {
         $method->setName('setObjectData');
         $method->setParameter('data');
         $method->setDocBlock(DocBlockGenerator::fromArray([
-                    'shortDescription' => 'Return instance of ' . $this->getCamelCase($this->actual_table).'Model',
+                    'shortDescription' => 'Return instance of ' . $this->getCamelCase($this->actual_table) . 'Model',
                     'longDescription' => null,
         ]));
         $method->setVisibility(MethodGenerator::FLAG_PRIVATE);
@@ -647,6 +652,7 @@ class MapperGenerator {
 
         $default = 'null';
         switch ($column->getName()) {
+            case 'date_created':
             case 'date_entered':
             case 'date_modified':
             case 'date_modified':
@@ -654,7 +660,7 @@ class MapperGenerator {
                 break;
             case 'deleted':
                 $default = '$data->' . $column->getName() . ' = 0';
-                  break;
+                break;
             case 'modified_user_id':
             case 'assigned_user_id':
                 $default = '$data->' . $column->getName() . ' =  ($id !== null) ? $id : $data[\'' . $column->getName() . '\'];';
