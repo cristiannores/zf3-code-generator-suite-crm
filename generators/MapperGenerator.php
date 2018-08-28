@@ -162,8 +162,7 @@ class MapperGenerator {
                 file_put_contents($file_saved, $model);
                 return $file_saved;
             }
-        } else {
-            Zend\Debug\Debug::dump('no existe');
+        } else {            
             file_put_contents($file_saved, $model);
             return $file_saved;
         }
@@ -612,7 +611,7 @@ class MapperGenerator {
                 . "\n"
                 . 'if ( $current_user instanceof User ){'
                 . "\n"
-                . "\t" . '$id = $current_user->id();'
+                . "\t" . '$id = $current_user->id;'
                 . "\n"
                 . '}'
 
@@ -655,6 +654,7 @@ class MapperGenerator {
                 break;
             case 'deleted':
                 $default = '$data->' . $column->getName() . ' = 0';
+                  break;
             case 'modified_user_id':
             case 'assigned_user_id':
                 $default = '$data->' . $column->getName() . ' =  ($id !== null) ? $id : $data[\'' . $column->getName() . '\'];';
