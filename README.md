@@ -6,7 +6,11 @@ This tool generate classes and mappers from database metadata.
 ## Example 
 
 
+
+## HOW TO USE 
+
 ### modify core/Database.php
+
 ```php
 if (!$driver) {
   $this->adapter = new Zend\Db\Adapter\Adapter([
@@ -20,10 +24,51 @@ if (!$driver) {
 }            
 ```
 
-### Run code generator
+### modify core/config.php
+
+
+```php
+$GLOBALS['suite_crm_path'] = '/var/www/suite/public_html';       
 ```
+
+
+### Run code generator
+
+```bash
 php generate.php
 ```
+
+### Method run 
+
+Método para correr el generador
+
+```bash
+php generate.php run 
+```
+
+#### Option --table -t
+
+Agregar el nombre de la tabla que se desea generar
+
+```bash
+php generate.php run --table my_table_name 
+```
+#### Option --override
+
+Sobre escribir el mapper existente
+
+```bash
+php generate.php run --table my_table_name  --override
+```
+
+#### Option --all
+
+Genera todos los mappers y classes de la base de datos
+
+```bash
+php generate.php run --all
+```
+
 
 Thats All!! 
 THXS...
