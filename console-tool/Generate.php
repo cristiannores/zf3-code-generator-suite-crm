@@ -22,17 +22,59 @@ class GenerateCommand extends Command {
                 ->addOption('all', null, Symfony\Component\Console\Input\InputOption::VALUE_NONE, 'Agregar todas las tablas')
                 ->addOption('cstm', null, Symfony\Component\Console\Input\InputOption::VALUE_NONE, 'Inlcuir tablas cstm')
                 ->addOption('overwrite', null, Symfony\Component\Console\Input\InputOption::VALUE_NONE, 'Sobreescribe las tablas existentes')
+                ->addOption('show:url', null, Symfony\Component\Console\Input\InputOption::VALUE_NONE, 'Muestra la url de la suite')
         ;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output) {
         $output->setFormatter(new Symfony\Component\Console\Formatter\OutputFormatter(true));
         $output->writeln([
-            'Generando models y mapers ',
+            'Generador de models y mapers ',
             '=========================',
         ]);
 
-
+        
+        $output->writeln([
+            'Analizando ruta de suite crm',
+            '=========================',
+        ]);
+         
+         
+        // Check suite crm dir
+        $suite_check = false;
+        if (is_dir($GLOBALS['suite_crm_path'])){
+            $version = $GLOBALS['suite_crm_path'].DIRECTORY_SEPARATOR.'suitecrm_version.php';
+            if(file_exists($version)){
+                define('sugarEntry', 'Generador');
+                include $version;
+                $output->writeln([
+                    '<comment>Suite found -- version '.$suitecrm_version.'</>',
+                    '=========================',
+                ]);
+                $suite_check = true;
+            }
+        }
+        
+        if ( !$suite_check){
+              $output->writeln([
+                'Suite dir not found',
+                'Change url in core/config.php',
+                'Actual url : '.$GLOBALS['suite_crm_path'],
+                '=========================',
+            ]);
+              exit;
+        }
+        if ($input->getOption('overwrite')) {
+            $overwrite = true;
+        }
+        if ($input->getOption('show:url')) {
+           $output->writeln([
+            'URL :: ' .$GLOBALS['suite_crm_path'],
+            
+        ]);
+        }
+        
+        
         $all = $input->getOption('all');
         $overwrite = false;
         if ($input->getOption('overwrite')) {
@@ -81,7 +123,7 @@ class GenerateCommand extends Command {
                 $archivos = $maperGenerator->generate();
             } else {
                 $output->writeln([
-                    'DEBE SELECCIONAR UNA TABLA'
+                    '<comment>Para generar mappers y classes debes mencionar una tabla  (--table table_name ) ó usar la opcion --all</>'
                 ]);
             }
         }
