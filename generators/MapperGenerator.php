@@ -202,7 +202,7 @@ class MapperGenerator {
         $body = "\n"
                 . '$this->generateId();'
                 . "\n"
-                . '$data_table = ($data instanceof ' . $this->getCamelCase($this->actual_table) . ') ? (array) $data : (array) $this->setObjectData($data);'
+                . '$data_table = ($data instanceof ' . $this->getCamelCase($this->actual_table) . 'Model ) ? (array) $data : (array) $this->setObjectData($data);'
                 . "\n"
                 . '$data_table = $this->generateSetDefaultInsertValues($data);'
                 . "\n"
@@ -229,7 +229,7 @@ class MapperGenerator {
                     . "\n"
                     . "// Generating insert in table cstm"
                     . "\n"
-                    . '$data_table_cstm = ($data instanceof ' . $this->getCamelCase($this->actual_table) . 'Cstm) ? (array) $data : (array) $this->setObjectDataCstm($data);'
+                    . '$data_table_cstm = ($data instanceof ' . $this->getCamelCase($this->actual_table) . 'CstmModel) ? (array) $data : (array) $this->setObjectDataCstm($data);'
                     . "\n"
                     . '$data_table_cstm[\'id_c\'] = $this->id;'
                     . "\n"
@@ -270,7 +270,7 @@ class MapperGenerator {
     private function generateUpdateMethod() {
         // Agregando body de metodo store
         $body = "\n"
-                . '$data_table = ($data instanceof ' . $this->getCamelCase($this->actual_table) . ') ? (array) $data : (array) $this->setObjectData($data);'
+                . '$data_table = ($data instanceof ' . $this->getCamelCase($this->actual_table) . 'Model ) ? (array) $data : (array) $this->setObjectData($data);'
                 . "\n"
                 . 'unset($data_table[\'id\']);'
                 . "\n"
@@ -290,7 +290,7 @@ class MapperGenerator {
 
         if ($this->table_cstm_exists) {
             $body .= "\n"
-                    . '$data_table_cstm = ($data instanceof ' . $this->getCamelCase($this->actual_table) . 'Cstm) ? (array) $data : (array) $this->setObjectDataCstm($data);'
+                    . '$data_table_cstm = ($data instanceof ' . $this->getCamelCase($this->actual_table) . 'CstmModel ) ? (array) $data : (array) $this->setObjectDataCstm($data);'
                     . "\n"
                     . '$data_table_cstm[\'id_c\']= $id;'
                     . "\n"
@@ -478,7 +478,7 @@ class MapperGenerator {
                 . "\n"
                 . "\t" . '$resultSet->setHydrator(new ObjectProperty());'
                 . "\n"
-                . "\t" . '$resultSet->setObjectPrototype(new ' . $this->getCamelCase($this->actual_table) . '());'
+                . "\t" . '$resultSet->setObjectPrototype(new ' . $this->getCamelCase($this->actual_table) . 'Model());'
                 . "\n"
                 . "\t" . '$resultSet->initialize($result);'
                 . "\n"
@@ -509,7 +509,7 @@ class MapperGenerator {
         $body = "\n"
                 . '$data = (array) $data;'
                 . "\n"
-                . '$' . $this->actual_table . ' = new ' . $this->getCamelCase($this->actual_table) . '();'
+                . '$' . $this->actual_table . ' = new ' . $this->getCamelCase($this->actual_table) . 'Model();'
                 . "\n" . '$' . $this->actual_table . '->exchangeArray($data);'
                 . "\n" . 'return $' . $this->actual_table . ';';
 
@@ -518,7 +518,7 @@ class MapperGenerator {
         $method->setName('setObjectData');
         $method->setParameter('data');
         $method->setDocBlock(DocBlockGenerator::fromArray([
-                    'shortDescription' => 'Return instance of ' . $this->getCamelCase($this->actual_table),
+                    'shortDescription' => 'Return instance of ' . $this->getCamelCase($this->actual_table).'Model',
                     'longDescription' => null,
         ]));
         $method->setVisibility(MethodGenerator::FLAG_PRIVATE);
@@ -532,7 +532,7 @@ class MapperGenerator {
                 . '$data = (array) $data;'
                 . "\n"
                 . ''
-                . '$' . $this->actual_table . '_cstm = new ' . $this->getCamelCase($this->actual_table) . 'Cstm();'
+                . '$' . $this->actual_table . '_cstm = new ' . $this->getCamelCase($this->actual_table) . 'CstmModel();'
                 . "\n" . '$' . $this->actual_table . '_cstm->exchangeArray($data);'
                 . "\n" . 'return $' . $this->actual_table . '_cstm;';
 
@@ -541,7 +541,7 @@ class MapperGenerator {
         $method->setName('setObjectDataCstm');
         $method->setParameter('data');
         $method->setDocBlock(DocBlockGenerator::fromArray([
-                    'shortDescription' => 'Return instance of ' . $this->getCamelCase($this->actual_table) . 'Cstm',
+                    'shortDescription' => 'Return instance of ' . $this->getCamelCase($this->actual_table) . 'CstmModel',
                     'longDescription' => null,
         ]));
         $method->setVisibility(MethodGenerator::FLAG_PRIVATE);

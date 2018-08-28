@@ -62,7 +62,7 @@ class ModelGenerator {
 
 
             $class = new ClassGenerator();
-            $class->setName($this->getCamelCase($tableName));
+            $class->setName($this->getCamelCase($tableName).'Model');
 
             $table = $this->metadata->getTable($tableName);
             $properties = [];
@@ -110,7 +110,7 @@ class ModelGenerator {
             $class->addMethodFromGenerator($this->generateExchangeArrayMethod($bodyMethodExchangeArray));
             $class->addMethodFromGenerator($this->generateGetCopyArrayMethod());
             $class->addMethodFromGenerator($this->generateIsValidMethod());
-            $file = $this->generateFile($tableName, $class);
+            $file = $this->generateFile($tableName.'Model', $class);
 
             $this->output->writeln('Archivo generado : ' . $file);
             $this->filesCreated[] = $file;
