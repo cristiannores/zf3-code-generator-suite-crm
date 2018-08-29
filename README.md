@@ -124,7 +124,7 @@ try {
     $contact_id = $mapperContacts->store($contacto);
     $email_id = $mapperEmailAddresses->store($email);
 
-    if ($contact_id && $email_addrress_id) {
+    if ($contact_id && $email_id) {
         $asignado = $mapperEmailAddresses->assignToContact($contact_id, $email_id);
 
         if ($asignado) {
