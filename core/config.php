@@ -1,4 +1,4 @@
 <?php
 
-$GLOBALS['suite_crm_path'] = 'C:\Users\crist\Documents\COCHA\suite-crm';
+$GLOBALS['suite_crm_path'] = 'C:\Users\cnores\Documents\COCHA\suite-crm';
 

@@ -316,7 +316,8 @@ CONSTRUCTOR;
 
 // generating the values array merging the two objects
 \$values = array_merge(\$data_table, \$data_cstm);
-if (count(\$values) > 0) {
+\$values = \$this->unsetNullsInUpdate(\$values);                
+if (count(\$values) < 1) {
     return false;
 }
 
@@ -367,7 +368,8 @@ EOD;
 
 // generating the values array merging the two objects
 \$values = array_merge(\$data_table, \$data_cstm);
-if (count(\$values) > 0) {
+\$values = \$this->unsetNullsInUpdate(\$values);                
+if (count(\$values) < 1) {
     return false;
 }
 
@@ -947,7 +949,7 @@ EOD;
                 break;
             case 'modified_user_id':
             case 'assigned_user_id':
-                $default = '$data->' . $column->getName() . ' =  ($id !== null) ? $id : $data[\'' . $column->getName() . '\'];';
+                $default = '$data->' . $column->getName() . ' =  ($id !== null) ? $id : $data->' . $column->getName() . '; ';
             default:
 
                 break;
