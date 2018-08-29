@@ -174,7 +174,10 @@ class MapperGenerator {
 
         $constructorMethod = new MethodGenerator();
         $constructorMethod->setName('__construct');
-        $constructorMethod->setParameter('adapter');
+        $parameter = new \Zend\Code\Generator\ParameterGenerator();
+        $parameter->setName('adapter');
+        $parameter->setDefaultValue(null);
+        $constructorMethod->setParameter($parameter);
         $constructorMethod->setBody($bodyConstructor);
 
         $class = new ClassGenerator();
