@@ -121,6 +121,8 @@ class MapperGenerator {
             $class->addMethodFromGenerator($this->generateUpdateMethod());
             $class->addMethodFromGenerator($this->generateDeleteMethod());
             $class->addMethodFromGenerator($this->generateGetMethod());
+            $class->addMethodFromGenerator($this->generateFindOneByMethod());
+            $class->addMethodFromGenerator($this->generateFindManyByMethod());
             $class->addMethodFromGenerator($this->generateGetAllMethod());
              // Verifico si tengo tablas de relacion
             $this->checkIfExistsRelationship($tableName);
@@ -206,18 +208,20 @@ class MapperGenerator {
         //Generating parameter
         $parameterAdapter = new \Zend\Code\Generator\ParameterGenerator();
         $parameterAdapter->setName('adapter');
+        $parameterAdapter->setDefaultValue(null);
         // Generating body
-        $body = "\n"
-                . '$this->adapter = $adapter;'
-                . "\n"
-                . '$date_now_utc = (new \DateTime( \'now\',  new \DateTimeZone( \'UTC\' ) ));'
-                . "\n"
-                . '$this->now = $date_now_utc->format(\'Y-m-d h:i:s\');'
-                . "\n"
-        ;
-
-
-
+        
+        $body = <<< CONSTRUCTOR
+if ( \$adapter ){
+    \$this->adapter = \$adapter;
+} else {
+    \$this->adapter = (new Database())->getAdapter();
+}
+        
+\$date_now_utc = (new \DateTime( 'now',  new \DateTimeZone( 'UTC' ) ));
+\$this->now = \$date_now_utc->format('Y-m-d h:i:s');
+CONSTRUCTOR;
+            
 
         $method = new MethodGenerator();
         $method->setName('__construct');
@@ -296,6 +300,131 @@ class MapperGenerator {
         $method->setVisibility($method::FLAG_PUBLIC);
         $method->setBody($body);
         return $method;
+    }
+    
+    private function generateFindOneByMethod() {
+        
+        
+        $body = <<< EOD
+
+// getting data from both tables
+\$data_table = (array) \$this->setObjectData(\$data);
+\$data_cstm = (array) \$this->setObjectDataCstm(\$data);
+
+// generating the values array merging the two objects
+\$values = array_merge(\$data_table, \$data_cstm);
+if (count(\$values) > 0) {
+    return false;
+}
+
+\$sql = new Sql(\$this->adapter);
+
+\$select = new Select('{$this->actual_table}');
+\$select->join('{$this->actual_table}_cstm', '{$this->actual_table}_cstm.id_c = {$this->actual_table}.id', [], \$select::JOIN_INNER);
+\$select->where(\$values);
+\$select->limit(1);
+
+\$result = \$sql->prepareStatementForSqlObject(\$select)->execute();
+
+if (\$result instanceof ResultInterface && \$result->isQueryResult()) {
+
+    if (\$result->count() > 0){
+        return (array) \$result->current();
+    } else {
+        return false;
+    }
+    
+} else {
+    return false;
+}
+EOD;
+        
+        $docBlock = new DocBlockGenerator();
+        $docBlock->setShortDescription('Metodo que busca '.$this->actual_table. ' por parametros de la tabla');
+        $method = new MethodGenerator();
+        $method->setVisibility($method::VISIBILITY_PUBLIC);
+        $method->setName('findOneBy');
+        $method->setDocBlock($docBlock);
+        $method->setParameter('data');
+        $method->setBody($body);
+        
+        
+        return $method;
+        
+        
+    }
+    private function generateFindManyByMethod() {
+        
+        
+        $body = <<< EOD
+
+// getting data from both tables
+\$data_table = (array) \$this->setObjectData(\$data);
+\$data_cstm = (array) \$this->setObjectDataCstm(\$data);
+
+// generating the values array merging the two objects
+\$values = array_merge(\$data_table, \$data_cstm);
+if (count(\$values) > 0) {
+    return false;
+}
+
+\$sql = new Sql(\$this->adapter);
+
+\$select = new Select('{$this->actual_table}');
+\$select->join('{$this->actual_table}_cstm', '{$this->actual_table}_cstm.id_c = {$this->actual_table}.id', [], \$select::JOIN_INNER);
+\$select->where(\$values);
+
+// setting limit if exists
+if ( \$limit ){
+
+    \$select->limit(\$limit);
+}
+
+// seting offset if exists        
+if ( \$offset ){
+
+    \$select->offset(\$offset);
+}
+
+\$result = \$sql->prepareStatementForSqlObject(\$select)->execute();
+
+if (\$result instanceof ResultInterface && \$result->isQueryResult()) {
+
+    if (\$result->count() > 0){
+        return \$result;
+    } else {
+        return false;
+    }
+    
+} else {
+    return false;
+}
+EOD;
+        
+        $docBlock = new DocBlockGenerator();
+        $docBlock->setShortDescription('Metodo que busca muchos '.$this->actual_table. ' por parametros de la tabla');
+        $method = new MethodGenerator();
+        $method->setVisibility($method::VISIBILITY_PUBLIC);
+        $method->setName('findManyBy');
+        $method->setDocBlock($docBlock);
+        $method->setParameter('data');
+        // agrego el parametro limit
+        $parameter = new \Zend\Code\Generator\ParameterGenerator();
+        $parameter->setDefaultValue(null);
+        $parameter->setName('limit');        
+        $method->setParameter($parameter);
+        // agregeo el parametro offset
+        $parameter = new \Zend\Code\Generator\ParameterGenerator();
+        $parameter->setDefaultValue(null);
+        $parameter->setName('offset');        
+        $method->setParameter($parameter);
+        
+        $method->setBody($body);
+        
+        
+        return $method;
+        
+        
     }
 
     private function generateUpdateMethod() {
@@ -772,6 +901,9 @@ class MapperGenerator {
 
             $body .= "\n"
                     . "\n"
+                    .'$sql = new Sql($this->adapter);'
+                    
+                    . "\n"
                     . '$insert = new Insert(\'' . $rel['relation_table'] . '\');'
                     . "\n"
                     . '$insert->values($data);'
@@ -830,7 +962,7 @@ class MapperGenerator {
 
     private function generateFile($fileName, $class) {
 
-        $file = new FileGenerator();
+        $file = new FileGenerator();   
         $file->setClass($class);
         @$model = $file->generate();
         $file_saved = $this->dir . 'base/' . $this->getCamelCase($fileName) . 'MapperBase.php';
