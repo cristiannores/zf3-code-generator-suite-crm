@@ -12,17 +12,38 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class MapperGenerator {
 
+    // Adaptador de base de datos
     protected $adapter;
+    // Metada 
     protected $metadata;
+    // Directorio creado
     protected $dir;
+    // Archivos creados
     protected $filesCreated = [];
+    // Tabla actual
     protected $actual_table;
+    // Tablas relacionadas de la tabla actual
+    protected $actual_relationships = [];
+    // Valor si existe auxiliar en tabla actual
     protected $table_cstm_exists;
+    // Valor si existe relacion en la tabla actual
+    protected $table_relationship_exists;
+    // Todas las tablas
     protected $tables;
+    // Todas las tablas auxiliares
+    protected $tables_cstm = [];
+    // Todas las tablas de relacion
+    protected $tables_relationship = [];
+    // Tablas permitidas para generar
     protected $tablesAllowed;
+    // Restringe el acceso ( solo una tabla ) 
     protected $restric_table = null;
+    // Output console value
     protected $output = null;
+    // Sobre escribe mappers..
     protected $overwrite = false;
+    // Metodos de relacion
+    protected $relationship_methods = [];
 
     public function __construct($overwrite = false) {
 
@@ -37,45 +58,40 @@ class MapperGenerator {
         $this->generateDirectory();
     }
 
-    private function generateDirectory() {
-        if (!file_exists($this->dir)) {
-            mkdir($this->dir, 0777, true);
-        }
-        if (!file_exists($this->dir . 'base/')) {
-            mkdir($this->dir . 'base/', 0777, true);
-        }
-    }
-
-    public function setTable($table) {
-        $this->restric_table = $table;
-    }
-
     public function generate() {
 
         $this->tables = $this->metadata->getTableNames();
 
+        $this->filterTables();
 
         foreach ($this->tables as $tableName) {
+            // seteo la variable actual como global en la clase.
+            $this->actual_table = $tableName;
 
-
-            // Salto las tablas cstm para la generacion de mappers
-            if (substr($tableName, -5) === 'cstm') {
+            // Salto las tablas cstm para la generacion de mappers ( se generan por tabla ) 
+            if (substr($tableName, -5) === '_cstm') {
                 continue;
             }
-            // cheking if table cstm exists
+            //salto las tablas de relacion ( se generan por tabla ) 
+            if (substr($tableName, -4) === '_1_c') {
+                continue;
+            }
+
+            // Verifico si la tabla actual tiene tablas auxiliares
             $this->table_cstm_exists = false;
             if (in_array($tableName . '_cstm', $this->tables)) {
                 $this->table_cstm_exists = true;
             }
 
-            // Restrict only for a table
+            // Verifico si viene una sola tabla que es la que se procesará
             if ($this->restric_table !== null) {
                 if ($this->restric_table !== $tableName) {
                     continue;
                 }
             }
 
-            $this->actual_table = $tableName;
+
+
             $class = new ClassGenerator();
             $class->addProperty('adapter', null, PropertyGenerator::FLAG_PROTECTED);
             $class->addProperty('id', null, PropertyGenerator::FLAG_PROTECTED);
@@ -97,13 +113,26 @@ class MapperGenerator {
             $bodyMethodExchangeArray = '';
 
 
-
+            //constructor
             $class->addMethodFromGenerator($this->generateConstructorMethod());
+            
+            // querys
             $class->addMethodFromGenerator($this->generateStoreMethod());
             $class->addMethodFromGenerator($this->generateUpdateMethod());
             $class->addMethodFromGenerator($this->generateDeleteMethod());
             $class->addMethodFromGenerator($this->generateGetMethod());
             $class->addMethodFromGenerator($this->generateGetAllMethod());
+             // Verifico si tengo tablas de relacion
+            $this->checkIfExistsRelationship($tableName);
+            if ($this->table_relationship_exists) {
+                $this->generateRelationShipMethods($tableName);
+                foreach ($this->relationship_methods as $method) {
+                    $class->addMethodFromGenerator($method);
+                }
+            }
+            
+            
+            // privados
             $class->addMethodFromGenerator($this->generateSetObjectDataMethod());
             if ($this->table_cstm_exists) {
                 $class->addMethodFromGenerator($this->generateSetObjectDataCstmMethod());
@@ -113,6 +142,8 @@ class MapperGenerator {
             $columns = $this->metadata->getTable($tableName)->getColumns();
             $class->addMethodFromGenerator($this->generateSetDefaultInsertValues($columns));
             $class->addMethodFromGenerator($this->generateUnsetNullsInUpdate());
+
+           
 
             $file = $this->generateFile($tableName, $class);
             $this->output->writeln('Archivo generado : ' . $file);
@@ -306,16 +337,16 @@ class MapperGenerator {
                     . "\n"
                     . '$result_cstm = $sql->prepareStatementForSqlObject($update)->execute();'
                     . "\n";
-                    
+
 
             ;
         }
 
 
-        if ( $this->table_cstm_exists){
+        if ($this->table_cstm_exists) {
             $body .= 'return $result->getAffectedRows() +  $result_cstm->getAffectedRows();';
-        }else{
-             $body .= 'return $result->getAffectedRows();';
+        } else {
+            $body .= 'return $result->getAffectedRows();';
         }
 
         // Agregando metodo exchange array
@@ -648,6 +679,124 @@ class MapperGenerator {
         return $method;
     }
 
+    private function generateRelationShipMethods($tableName) {
+        $this->output->writeln('La tabla tiene relaciones generando metodos de relación');
+        foreach ($this->actual_relationships as $rel) {
+         
+            // Docs
+            $docBlock = new DocBlockGenerator();
+            $docBlock->setShortDescription('Agregar un ' . $rel['relation_with']);
+
+
+            // Generando metodo de relacion
+            $method = new MethodGenerator();
+            $method->setDocBlock($docBlock);
+            $method->setName('addRelationship' . $this->getCamelCase($rel['relation_with']));
+
+            // Obtengo las columnas 
+
+            $columnas = $this->metadata->getColumns($rel['relation_table']);
+
+            // construyo el body de la tabla 
+
+            $body = "\n"
+                    . "\n"
+                    . 'if( $checkExists ){'
+                    . "\n"
+                    . "\t" . 'if(!$this->get( $' . $tableName . '_id' . ' )) {'
+                    . "\n"
+                    . "\t" . "\t" . 'return false;'
+                    . "\n"
+                    . "\t" . '}'
+                    . "\n"
+                    . '}'
+                    . "\n"
+                    . "\n"
+                    . '$this->generateId();'
+                    . "\n" . "\n"
+                    . '// Generando data insert '
+                    . "\n"
+                    . '$data = [];'
+                    . "\n"
+                    . "\n"
+            ;
+
+            // Obtengo los parametros de la tabla de relacion
+            foreach ($columnas as $col) {
+
+                if ($col->getName() == 'date_modified') {
+                    $body .= '$data[\'id\'] = $this->id;';
+                    $body .= "\n";
+                }
+
+                if ($col->getName() == 'date_modified') {
+                    $body .= '$data[\'date_modified\'] = $this->now;';
+                    $body .= "\n";
+                }
+
+                if ($col->getName() == 'deleted') {
+                    $body .= '$data[\'deleted\'] = 0;';
+                    $body .= "\n";
+                }
+
+                // Obtengo la id a generar
+                if (strpos($col->getName(), "1" . $rel['relation_with']) !== false) {
+
+                    $relation_ship_name = $col->getName();
+                    $relation_ship_id = $rel['relation_with'] . '_id';
+                    $method->setParameter($relation_ship_id);
+
+                    $body .= '$data[\'' . $relation_ship_name . '\'] = $' . $relation_ship_id . ";";
+                    $body .= "\n";
+                }
+                // Obtengo la id actual 
+                if (strpos($col->getName(), "1" . $tableName) !== false) {
+
+                    $actual_table_name = $col->getName();
+                    $actual_table_id = $tableName . '_id';
+                    $method->setParameter($actual_table_id);
+
+
+                    $body .= '$data[\'' . $actual_table_name . '\'] = $' . $actual_table_id . ";";
+                    $body .= "\n";
+                }
+            }
+
+            // generando parametro de checkear si existen los ids
+            $parameter = new \Zend\Code\Generator\ParameterGenerator();
+            $parameter->setName('checkExists');
+            $parameter->setDefaultValue(false);
+
+
+            $method->setParameter($parameter);
+
+            $body .= "\n"
+                    . "\n"
+                    . '$insert = new Insert(\'' . $rel['relation_table'] . '\');'
+                    . "\n"
+                    . '$insert->values($data);'
+                    . "\n"
+                    . "\n"
+                    . '$result = $sql->prepareStatementForSqlObject($insert)->execute();'
+                    . "\n"
+                    . 'if ($result->getAffectedRows() > 0) {'
+                    . "\n"
+                    . "\t" . 'return $this->id;'
+                    . "\n"
+                    . '}'
+                    . "\n"
+                    . 'return false;';
+
+
+
+
+            $method->setBody($body);
+
+
+            $this->relationship_methods[] = $method;
+        }
+    }
+
     private function getDefaultInsertColumn($column) {
 
         $default = 'null';
@@ -710,6 +859,71 @@ class MapperGenerator {
     private function getTablesToGenerate() {
         require __DIR__ . './tablesToGenerate.php';
         $this->tablesAllowed = $tables;
+    }
+
+    private function generateDirectory() {
+        if (!file_exists($this->dir)) {
+            mkdir($this->dir, 0777, true);
+        }
+        if (!file_exists($this->dir . 'base/')) {
+            mkdir($this->dir . 'base/', 0777, true);
+        }
+    }
+
+    public function setTable($table) {
+        $this->restric_table = $table;
+    }
+
+    private function filterTables() {
+        foreach ($this->tables as $table) {
+            if (strpos($table, 'cstm') !== false) {
+                $this->tables_cstm[] = $table;
+            }
+            if (strpos($table, '_1_c') !== false) {
+                $this->tables_relationship[] = $table;
+            }
+        }
+    }
+
+    private function checkIfExistsRelationship($tableName) {
+        $this->table_relationship_exists = false;
+        $relationships = [];
+        foreach ($this->tables_relationship as $table) {
+            $find = str_replace('_1_c', '', $table);
+            // Verifico si existe la tabla si es asi extraigo la otra tabla y la almaceno
+            if (strpos($find, $tableName) !== false) {
+                $relationships = explode('_', $find);
+                // remuevo la tabla propia para dejar solo la relacion
+                foreach ($relationships as $key => $rel) {
+                    if ($rel === $tableName) {
+                        unset($relationships[$key]);
+                    }
+                }
+                $this->table_relationship_exists = true;
+                // Obtengo las relaciones..
+                $columns = $this->metadata->getColumns($table);
+
+                foreach ($columns as $col) {
+                    if (strpos($col->getName(), $tableName . '_ida') !== false) {
+                        $this->actual_relationships[] = ['relation_with' => $this->getNameTableList($table, $tableName), 'relation_table' => $table];
+                    }
+                }
+            }
+        }
+    }
+
+    private function getNameTableList($str, $actual) {
+        
+
+        $find = str_replace($actual, '', $str);
+
+        foreach ($this->tables as $table) {
+
+            if (strpos($find, $table) !== false) {
+
+                return $table;
+            }
+        }
     }
 
 }
