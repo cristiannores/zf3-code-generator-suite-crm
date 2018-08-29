@@ -1,3 +1,4 @@
+ 
 # zend-code-generator-zf3
 Code generator of zf3 fror mappers y classes
 
@@ -7,7 +8,7 @@ This tool generate classes and mappers from database metadata.
 
 
 
-## HOW TO USE 
+### How to generate 
 
 ### modify core/Database.php
 
@@ -69,6 +70,97 @@ Genera todos los mappers y classes de la base de datos
 php generate.php run --all
 ```
 
+
+
+### How to use mappers 
+
+#### Llamando directamente a los mappers
+
+Se puede llamar directamente a los mappers .. se generara una coneccion diferente si no se le indica el adaptador en el mapper
+
+```php
+$mapperContacts = new ContactsMapper();
+
+// Guardando contactos
+$mapperContacts->store($data);
+
+// Obteniendo contacto por id
+$mapperContacts->get($id);
+
+// Actualizando contacto por id
+$mapperContacts->update($contact, $id);
+
+ // Encontrando un contacto por parametros
+$mapperContacts->findOneBy($find);
+
+// Encontrando  muchos contactos por parametro
+$mapperContacts->findManyBy($data);
+
+// Borrando un contacto 
+$mapperContacts->delete($id);
+
+// Obteniendo todos los contactos un contacto 
+$mapperContacts->getAll();
+```
+
+
+#### Usando una transaccion para multiples llamadas
+
+Se debe agregar un adaptador para todos los mappers, que instancia a una conexion 
+
+```php
+// Get adapter
+$database = new Database();
+$adapter = $database->getAdapter();        
+
+try {
+
+    // Iniciando transaccion
+    $adapter->getDriver()->getConnection()->beginTransaction();
+
+    $mapperContacts = new ContactsMapper($adapter);
+    $mapperEmailAddresses = new EmailAddressesMapper($adapter);
+
+    $contact_id = $mapperContacts->store($contacto);
+    $email_id = $mapperEmailAddresses->store($email);
+
+    if ($contact_id && $email_addrress_id) {
+        $asignado = $mapperEmailAddresses->assignToContact($contact_id, $email_id);
+
+        if ($asignado) {
+
+            // Commit
+            $adapter->getDriver()->getConnection()->commit();
+
+        } else {
+
+            // rollback
+            $adapter->getDriver()->getConnection()->rollback();
+        }
+    } else {
+
+        // rollback
+        $adapter->getDriver()->getConnection()->rollback();
+
+    }        
+
+} catch (Exception $exc) {
+
+    // rollback
+    $adapter->getDriver()->getConnection()->rollback();
+
+} catch (\Zend\Db\Adapter\Exception\ErrorException $ex) {
+
+    // rollback
+    $adapter->getDriver()->getConnection()->rollback();
+
+} catch (Zend\Db\Adapter\Exception\RuntimeException $ex) {
+
+    // rollback
+    $adapter->getDriver()->getConnection()->rollback();           
+
+}
+```
 
 Thats All!! 
 THXS...
