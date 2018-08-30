@@ -581,13 +581,32 @@ EOD;
 
             ;
         }
-
-
-        if ($this->table_cstm_exists) {
-            $body .= 'return $result->getAffectedRows() +  $result_cstm->getAffectedRows();';
-        } else {
-            $body .= 'return $result->getAffectedRows();';
+        $camelCaseAudit = $this->getCamelCase($this->actual_table)."Audit";
+        
+        if ( $this->table_cstm_exists){
+            $body .= <<<AA
+if (( \$result->getAffectedRows() +  \$result_cstm->getAffectedRows() ) > 0 ){
+    \$audit = new $camelCaseAudit(\$find, array_merge(\$data_table, \$data_table_cstm), \$id, true, \$this->adapter);
+    \$audit->generate();            
+}
+return \$result->getAffectedRows() +  \$result_cstm->getAffectedRows();                   
+AA;
+        }else{
+            
+            
+            $body .= <<<AA
+if ( \$result->getAffectedRows()  > 0 ){
+    \$audit = new $camelCaseAudit(\$find, array_merge(\$data_table), \$id, true, \$this->adapter) ;
+    \$audit->generate();            
+}
+return \$result->getAffectedRows();                                       
+AA;
+            
+            
         }
+        
+
+            
 
         // Agregando metodo exchange array
         $method = new MethodGenerator();
