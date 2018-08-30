@@ -26,23 +26,23 @@
     },
     "require": {
         "php": "^7.1",
+        "symfony/console": "^4.1",
+        "zendframework/zend-code": "^3.3",
         "zendframework/zend-component-installer": "^2.1.1",
         "zendframework/zend-config-aggregator": "^1.0",
+        "zendframework/zend-console": "^2.7",
+        "zendframework/zend-db": "^2.9",
+        "zendframework/zend-debug": "^2.6",
         "zendframework/zend-diactoros": "^1.7.1",
         "zendframework/zend-expressive": "^3.0.1",
-        "zendframework/zend-expressive-helpers": "^5.0",
-        "zendframework/zend-stdlib": "^3.1",
-        "zendframework/zend-servicemanager": "^3.3",
         "zendframework/zend-expressive-fastroute": "^3.0",
-        "zendframework/zend-db": "dev-master",
-        "zendframework/zend-hydrator": "dev-master",
-        "zendframework/zend-debug": "dev-master",
-        "zendframework/zend-code": "dev-master",
-        "zendframework/zend-validator": "dev-master",
-        "zendframework/zend-http": "dev-master",
-        "zendframework/zend-log": "dev-master",
-        "zendframework/zend-console": "^2.7",
-        "symfony/console": "^4.1"     
+        "zendframework/zend-expressive-helpers": "^5.0",
+        "zendframework/zend-http": "^2.8",
+        "zendframework/zend-hydrator": "^2.4",
+        "zendframework/zend-log": "^2.10",
+        "zendframework/zend-servicemanager": "^3.3",
+        "zendframework/zend-stdlib": "^3.1",
+        "zendframework/zend-validator": "^2.10"
     },
     "require-dev": {
         "phpunit/phpunit": "^7.0.1",
@@ -84,7 +84,3 @@
         "test-coverage": "phpunit --colors=always --coverage-clover clover.xml"
     }
 }
-
-
-
- 
