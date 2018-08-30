@@ -310,6 +310,35 @@ CONSTRUCTOR;
         
         $body = <<< EOD
 
+\$values = (array) \$this->setObjectData(\$data);
+\$values = \$this->unsetNullsInUpdate(\$values); 
+    
+if (count(\$values) < 1) {
+    return false;
+}
+
+\$sql = new Sql(\$this->adapter);
+
+\$select = new Select('{$this->actual_table}');
+\$select->where(\$values);
+\$select->limit(1);
+
+\$result = \$sql->prepareStatementForSqlObject(\$select)->execute();
+
+if (\$result instanceof ResultInterface && \$result->isQueryResult()) {
+
+    if (\$result->count() > 0){
+        return (array) \$result->current();
+    } else {
+        return false;
+    }
+    
+} else {
+    return false;
+}
+EOD;
+        $body_cstm = <<< EOD
+
 // getting data from both tables
 \$data_table = (array) \$this->setObjectData(\$data);
 \$data_cstm = (array) \$this->setObjectDataCstm(\$data);
@@ -350,7 +379,12 @@ EOD;
         $method->setName('findOneBy');
         $method->setDocBlock($docBlock);
         $method->setParameter('data');
-        $method->setBody($body);
+        if ( $this->table_cstm_exists ){
+            $method->setBody($body_cstm);
+        }else{
+            $method->setBody($body);
+        }
+        
         
         
         return $method;
@@ -360,7 +394,7 @@ EOD;
     private function generateFindManyByMethod() {
         
         
-        $body = <<< EOD
+        $body_cstm = <<< EOD
 
 // getting data from both tables
 \$data_table = (array) \$this->setObjectData(\$data);
@@ -405,6 +439,48 @@ if (\$result instanceof ResultInterface && \$result->isQueryResult()) {
     return false;
 }
 EOD;
+        $body = <<< EOD
+
+// getting data from both tables
+\$values = (array) \$this->setObjectData(\$data);
+\$values = \$this->unsetNullsInUpdate(\$values);                
+if (count(\$values) < 1) {
+    return false;
+}
+
+\$sql = new Sql(\$this->adapter);
+
+\$select = new Select('{$this->actual_table}');
+\$select->where(\$values);
+
+// setting limit if exists
+if ( \$limit ){
+
+    \$select->limit(\$limit);
+}
+
+// seting offset if exists        
+if ( \$offset ){
+
+    \$select->offset(\$offset);
+}
+
+\$result = \$sql->prepareStatementForSqlObject(\$select)->execute();
+
+if (\$result instanceof ResultInterface && \$result->isQueryResult()) {
+
+    if (\$result->count() > 0){
+        return \$result;
+    } else {
+        return false;
+    }
+    
+} else {
+    return false;
+}
+EOD;
+
+
         
         $docBlock = new DocBlockGenerator();
         $docBlock->setShortDescription('Metodo que busca muchos '.$this->actual_table. ' por parametros de la tabla');
@@ -423,8 +499,12 @@ EOD;
         $parameter->setDefaultValue(null);
         $parameter->setName('offset');        
         $method->setParameter($parameter);
+        if ( $this->table_cstm_exists ){
+            $method->setBody($body_cstm);
+        }else{
+            $method->setBody($body);
+        }
         
-        $method->setBody($body);
         
         
         return $method;
