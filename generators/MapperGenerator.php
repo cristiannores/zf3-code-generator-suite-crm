@@ -26,6 +26,8 @@ class MapperGenerator {
     protected $actual_relationships = [];
     // Valor si existe auxiliar en tabla actual
     protected $table_cstm_exists;
+    // Valor si existe auxiliar en tabla actual
+    protected $table_audit_exists;
     // Valor si existe relacion en la tabla actual
     protected $table_relationship_exists;
     // Todas las tablas
@@ -81,6 +83,11 @@ class MapperGenerator {
             $this->table_cstm_exists = false;
             if (in_array($tableName . '_cstm', $this->tables)) {
                 $this->table_cstm_exists = true;
+            }
+            // Verifico si la tabla actual tiene tablas auxiliares
+            $this->table_audit_exists = false;
+            if (in_array($tableName . '_audit', $this->tables)) {
+                $this->table_audit_exists = true;
             }
 
             // Verifico si viene una sola tabla que es la que se procesará
@@ -584,23 +591,39 @@ EOD;
         $camelCaseAudit = $this->getCamelCase($this->actual_table)."Audit";
         
         if ( $this->table_cstm_exists){
-            $body .= <<<AA
+            
+            if ( $this->table_audit_exists ){
+                 $body .= <<<AA
 if (( \$result->getAffectedRows() +  \$result_cstm->getAffectedRows() ) > 0 ){
     \$audit = new $camelCaseAudit(\$find, array_merge(\$data_table, \$data_table_cstm), \$id, true, \$this->adapter);
     \$audit->generate();            
 }
 return \$result->getAffectedRows() +  \$result_cstm->getAffectedRows();                   
 AA;
+            }else{
+                 $body .= <<<AA
+ 
+return \$result->getAffectedRows() +  \$result_cstm->getAffectedRows();                   
+AA;
+            }
+           
         }else{
             
-            
-            $body .= <<<AA
+             if ( $this->table_audit_exists ){
+                  $body .= <<<AA
 if ( \$result->getAffectedRows()  > 0 ){
     \$audit = new $camelCaseAudit(\$find, array_merge(\$data_table), \$id, true, \$this->adapter) ;
     \$audit->generate();            
 }
 return \$result->getAffectedRows();                                       
 AA;
+             }else{
+                         $body .= <<<AA
+ 
+return \$result->getAffectedRows();                                       
+AA;
+             }
+    
             
             
         }
@@ -866,7 +889,7 @@ AA;
         $body = "\n"
                 . 'foreach ($data as $key => $value) {'
                 . "\n"
-                . "\t" . 'if ($value === null) {'
+                . "\t" . 'if (is_null($value)) {'
                 . "\n"
                 . "\t" . "\t" . ' unset($data[$key]);'
                 . "\n"

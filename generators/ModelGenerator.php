@@ -84,7 +84,7 @@ class ModelGenerator {
                     $class->addPropertyFromGenerator($property);
 
                     $bodyMethodExchangeArray .= "\n" . '$this->' . $column->getName() . ' = ';
-                    $bodyMethodExchangeArray .= '(!empty($data[\'' . $column->getName() . '\'])) ? ';
+                    $bodyMethodExchangeArray .= '(isset($data[\'' . $column->getName() . '\'])) ? ';
                     $bodyMethodExchangeArray .= '$data[\'' . $column->getName() . '\']';
                     $bodyMethodExchangeArray .= ':';
                     $bodyMethodExchangeArray .= $this->checkDateTypeColumn($column->getDataType()) . ';';
