@@ -2,7 +2,7 @@
     "name": "cristiannores/suite-ctrm-generator",
     "description": "Zend generator !",
     "type": "project",
-   
+   "version": "1.0.0",
     "config": {
         "sort-packages": true
     },
