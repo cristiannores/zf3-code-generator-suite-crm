@@ -158,6 +158,10 @@ class GenerateCommand extends Command {
             $maperGenerator = new MapperGenerator($overwrite);
             $archivos = $maperGenerator->generate();
         }
+        
+        $auditGenerate = new AuditedGenerator();
+        $auditGenerate->setTable($table);
+        $archivos = $auditGenerate->generate();
     }
 
     private function from_camel_case($input) {

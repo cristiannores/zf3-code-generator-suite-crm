@@ -5,6 +5,7 @@ require_once __DIR__ . './Database.php';
 require_once __DIR__ . './Utils.php';
 require_once __DIR__ . '/../generators/ModelGenerator.php';
 require_once __DIR__ . '/../generators/MapperGenerator.php';
+require_once __DIR__ . '/../generators/AuditedGenerator.php';
 require_once __DIR__ . '/../testing/DatabaseTest.php';
 
 if (is_dir(__DIR__ . '/../mappers/base')) {
