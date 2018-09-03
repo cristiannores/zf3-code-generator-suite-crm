@@ -682,7 +682,7 @@ AA;
                 . "\t" . '$delete->where([\'id\' => $id]);'
                 . "\n"
                 . "\n"
-                . '$this->debug_query($delete);'
+                . "\t" . '$this->debug_query($delete);'
                 . "\n"
                 . "\n"
                 . "\t" . '$result = $sql->prepareStatementForSqlObject($delete)->execute();'
@@ -694,7 +694,7 @@ AA;
                     . "\n"
                     . "\t" . '$delete_cstm->where([\'id_c\' => $id]);'
                     . "\n"
-                    . '$this->debug_query($delete);'
+                     . "\t" . '$this->debug_query($delete_cstm);'
                     . "\n"
                     . "\t" . '$result_cstm = $sql->prepareStatementForSqlObject($delete_cstm)->execute();'
                     . "\n"
@@ -1182,7 +1182,7 @@ BODY;
 if (\$query_arrays == null || !is_array(\$query_arrays)) {
     \$query_arrays = [];
 }
-\$now = (new \DateTime('now'));
+\$now =  (new \DateTime('now',  new \DateTimeZone( 'America/Santiago' )));
 
 if (!is_array(\$query_arrays[\$id])) {
     \$query_arrays[\$id] = [];
@@ -1192,7 +1192,7 @@ if (!is_array(\$query_arrays[\$id])) {
     'class' => \$a[1]['class'],
     'query' => \$query,
     'method' =>\$a[2]['function'],
-    'date' => \$now->format('Y-m-d h:i:s')
+    'date' => \$now->format('Y-m-d H:i:s')
 ];
 
 
