@@ -103,6 +103,7 @@ class MapperGenerator {
             $class->addProperty('adapter', null, PropertyGenerator::FLAG_PROTECTED);
             $class->addProperty('id', null, PropertyGenerator::FLAG_PROTECTED);
             $class->addProperty('now', null, PropertyGenerator::FLAG_PROTECTED);
+            $class->addProperty('logger', null, PropertyGenerator::FLAG_PROTECTED);
             $class->setName($this->getCamelCase($tableName) . 'MapperBase');
             $class->addUse('Zend\Db\Adapter\Adapter');
             $class->addUse('Zend\Db\Adapter\Driver\ResultInterface');
@@ -131,6 +132,9 @@ class MapperGenerator {
             $class->addMethodFromGenerator($this->generateFindOneByMethod());
             $class->addMethodFromGenerator($this->generateFindManyByMethod());
             $class->addMethodFromGenerator($this->generateGetAllMethod());
+            $class->addMethodFromGenerator($this->generateInitLog());
+            $class->addMethodFromGenerator($this->generateDebugQueryMethod());
+            $class->addMethodFromGenerator($this->generateHtmlBeutyQuery());
             // Verifico si tengo tablas de relacion
             $this->checkIfExistsRelationship($tableName);
             if ($this->table_relationship_exists) {
@@ -242,6 +246,15 @@ if ( \$adapter ){
 } else {
     \$this->adapter = (new Database())->getAdapter();
 }
+                
+global \$sugar_config;
+\$this->config  = \$sugar_config;
+                
+ if (\$this->config['query_log']) {
+
+    \$this->logger = new CustomLogger('sql-' . date('Y-m-d') . '.log');
+    \$this->init_log();
+}
         
 \$date_now_utc = (new \DateTime( 'now',  new \DateTimeZone( 'UTC' ) ));
 \$this->now = \$date_now_utc->format('Y-m-d h:i:s');
@@ -276,6 +289,8 @@ CONSTRUCTOR;
                 . "\n"
                 . '$insert->values($data_table);'
                 . "\n"
+                . '$this->debug_query($insert);'
+                . "\n"
                 . '$result = $sql->prepareStatementForSqlObject($insert)->execute();'
                 . "\n"
                 . 'if ($result->getAffectedRows() === 0) {'
@@ -296,6 +311,8 @@ CONSTRUCTOR;
                     . '$insert = new Insert(\'' . $this->actual_table . '_cstm' . '\');'
                     . "\n"
                     . '$insert->values($data_table_cstm);'
+                    . "\n"
+                    . '$this->debug_query($insert);'
                     . "\n"
                     . '$result_cstm = $sql->prepareStatementForSqlObject($insert)->execute();'
                     . "\n"
@@ -345,6 +362,8 @@ if (count(\$values) < 1) {
 \$select->where(\$values);
 \$select->limit(1);
 
+\$this->debug_query(\$select);
+                    
 \$result = \$sql->prepareStatementForSqlObject(\$select)->execute();
 
 if (\$result instanceof ResultInterface && \$result->isQueryResult()) {
@@ -378,6 +397,8 @@ if (count(\$values) < 1) {
 \$select->join('{$this->actual_table}_cstm', '{$this->actual_table}_cstm.id_c = {$this->actual_table}.id', [], \$select::JOIN_INNER);
 \$select->where(\$values);
 \$select->limit(1);
+
+\$this->debug_query(\$select);
 
 \$result = \$sql->prepareStatementForSqlObject(\$select)->execute();
 
@@ -446,6 +467,9 @@ if ( \$offset ){
     \$select->offset(\$offset);
 }
 
+
+
+\$this->debug_query(\$select);
 \$result = \$sql->prepareStatementForSqlObject(\$select)->execute();
 
 if (\$result instanceof ResultInterface && \$result->isQueryResult()) {
@@ -486,6 +510,9 @@ if ( \$offset ){
     \$select->offset(\$offset);
 }
 
+
+
+\$this->debug_query(\$select);
 \$result = \$sql->prepareStatementForSqlObject(\$select)->execute();
 
 if (\$result instanceof ResultInterface && \$result->isQueryResult()) {
@@ -559,6 +586,7 @@ EOD;
                 . "\n"
                 . '$update->where([\'id\' => $id]);'
                 . "\n"
+                . '$this->debug_query($update);'
                 . "\n"
                 . '$result = $sql->prepareStatementForSqlObject($update)->execute();'
                 . "\n"
@@ -581,6 +609,7 @@ EOD;
                     . "\n"
                     . '$update->where([\'id_c\' => $id]);'
                     . "\n"
+                    . '$this->debug_query($update);'
                     . "\n"
                     . '$result_cstm = $sql->prepareStatementForSqlObject($update)->execute();'
                     . "\n" . "\n";
@@ -588,48 +617,44 @@ EOD;
 
             ;
         }
-        $camelCaseAudit = $this->getCamelCase($this->actual_table)."Audit";
-        
-        if ( $this->table_cstm_exists){
-            
-            if ( $this->table_audit_exists ){
-                 $body .= <<<AA
+        $camelCaseAudit = $this->getCamelCase($this->actual_table) . "Audit";
+
+        if ($this->table_cstm_exists) {
+
+            if ($this->table_audit_exists) {
+                $body .= <<<AA
 if (( \$result->getAffectedRows() +  \$result_cstm->getAffectedRows() ) > 0 ){
     \$audit = new $camelCaseAudit(\$find, array_merge(\$data_table, \$data_table_cstm), \$id, true, \$this->adapter);
     \$audit->generate();            
 }
 return \$result->getAffectedRows() +  \$result_cstm->getAffectedRows();                   
 AA;
-            }else{
-                 $body .= <<<AA
+            } else {
+                $body .= <<<AA
  
 return \$result->getAffectedRows() +  \$result_cstm->getAffectedRows();                   
 AA;
             }
-           
-        }else{
-            
-             if ( $this->table_audit_exists ){
-                  $body .= <<<AA
+        } else {
+
+            if ($this->table_audit_exists) {
+                $body .= <<<AA
 if ( \$result->getAffectedRows()  > 0 ){
     \$audit = new $camelCaseAudit(\$find, array_merge(\$data_table), \$id, true, \$this->adapter) ;
     \$audit->generate();            
 }
 return \$result->getAffectedRows();                                       
 AA;
-             }else{
-                         $body .= <<<AA
+            } else {
+                $body .= <<<AA
  
 return \$result->getAffectedRows();                                       
 AA;
-             }
-    
-            
-            
+            }
         }
-        
 
-            
+
+
 
         // Agregando metodo exchange array
         $method = new MethodGenerator();
@@ -656,6 +681,10 @@ AA;
                 . "\n"
                 . "\t" . '$delete->where([\'id\' => $id]);'
                 . "\n"
+                . "\n"
+                . '$this->debug_query($delete);'
+                . "\n"
+                . "\n"
                 . "\t" . '$result = $sql->prepareStatementForSqlObject($delete)->execute();'
                 . "\n"
                 . "\n";
@@ -664,6 +693,8 @@ AA;
             $body .= "\t" . '$delete_cstm = new Delete(\'' . $this->actual_table . '_cstm\');'
                     . "\n"
                     . "\t" . '$delete_cstm->where([\'id_c\' => $id]);'
+                    . "\n"
+                    . '$this->debug_query($delete);'
                     . "\n"
                     . "\t" . '$result_cstm = $sql->prepareStatementForSqlObject($delete_cstm)->execute();'
                     . "\n"
@@ -678,6 +709,8 @@ AA;
                 . "\t" . '$delete_soft->set([\'deleted\' => 1]);'
                 . "\n"
                 . "\t" . '$delete_soft->where([\'id\' => $id]);'
+                . "\n"
+                . '$this->debug_query($delete_soft);'
                 . "\n"
                 . "\t" . '$result = $sql->prepareStatementForSqlObject($delete_soft)->execute();'
                 . "\n"
@@ -722,6 +755,8 @@ AA;
                 . "\n"
                 . '$select->where([\'id\' => $id]);'
                 . "\n"
+                . '$this->debug_query($select);'
+                . "\n"
                 . '$result = $sql->prepareStatementForSqlObject($select)->execute();'
                 . "\n"
                 . 'if ( $result->count() > 0){'
@@ -740,6 +775,8 @@ AA;
                     . '$select_cstm = new Select(\'' . $this->actual_table . '_cstm\');'
                     . "\n"
                     . '$select_cstm->where([\'id_c\' => $id]);'
+                    . "\n"
+                    . '$this->debug_query($select_cstm);'
                     . "\n"
                     . '$result_cstm = $sql->prepareStatementForSqlObject($select_cstm)->execute();'
                     . "\n"
@@ -787,6 +824,8 @@ AA;
                 . '$sql = new Sql($this->adapter);'
                 . "\n"
                 . '$select = new Select(\'' . $this->actual_table . '\');'
+                . "\n"
+                . '$this->debug_query($select);'
                 . "\n"
                 . '$result = $sql->prepareStatementForSqlObject($select)->execute();'
                 . "\n"
@@ -1060,6 +1099,7 @@ AA;
                     . "\n"
                     . '$insert->values($data);'
                     . "\n"
+                    . "\$this->debug_query(\$insert);"
                     . "\n"
                     . '$result = $sql->prepareStatementForSqlObject($insert)->execute();'
                     . "\n"
@@ -1079,6 +1119,94 @@ AA;
 
             $this->relationship_methods[] = $method;
         }
+    }
+
+    private function generateInitLog() {
+
+        $body = <<<BODY
+\$a = debug_backtrace();
+\$msg = "CLASS :: " . \$a[1]['class'] . " >> FUNCTION :: " . \$a[1]['function'] . " ";
+\$this->logger->cochalog(\$this->logger::DEBUG, \$msg);
+
+BODY;
+
+        $method = new MethodGenerator();
+        $method->setName('init_log');
+        $method->setBody($body);
+        $method->setVisibility($method::VISIBILITY_PUBLIC);
+        return $method;
+    }
+
+    private function generateDebugQueryMethod() {
+        $body = <<<BODY
+ if (\$this->config['query_log']) {
+    if (!\$isRaw) {
+        \$query = \$object->getSqlString(\$this->adapter->getPlatform());
+    }
+
+    if (!\$this->config['production_env']) {
+        \$this->generate_html_beuty_query(\$query);
+    }
+
+
+    \$this->logger->cochalog(\$query);
+}
+
+BODY;
+
+        $param = new Zend\Code\Generator\ParameterGenerator();
+        $param->setName('isRaw');
+        $param->setDefaultValue(null);
+
+        $method = new MethodGenerator();
+        $method->setName('debug_query');
+        $method->setBody($body);
+        $method->setParameter('object');
+        $method->setParameter($param);
+        $method->setVisibility($method::VISIBILITY_PUBLIC);
+        return $method;
+    }
+
+    private function generateHtmlBeutyQuery() {
+        $body = <<<BODY
+\$file_name_arr = __DIR__ . "/../../../querys.json";
+\$a = debug_backtrace();
+
+\$id = serialize(\$a[1]['class'] . \$a[2]['function']);
+\$element[\$id] = [];
+
+
+
+
+\$query_arrays = json_decode(file_get_contents(\$file_name_arr), true);
+if (\$query_arrays == null || !is_array(\$query_arrays)) {
+    \$query_arrays = [];
+}
+\$now = (new \DateTime('now'));
+
+if (!is_array(\$query_arrays[\$id])) {
+    \$query_arrays[\$id] = [];
+}
+
+\$query_arrays[\$id][] = [
+    'class' => \$a[1]['class'],
+    'query' => \$query,
+    'method' =>\$a[2]['function'],
+    'date' => \$now->format('Y-m-d h:i:s')
+];
+
+
+
+
+file_put_contents(\$file_name_arr, json_encode(\$query_arrays));
+BODY;
+        $method = new MethodGenerator();
+        $method->setName('generate_html_beuty_query');
+        $method->setBody($body);
+        $method->setParameter('query');
+
+        $method->setVisibility($method::VISIBILITY_PUBLIC);
+        return $method;
     }
 
     private function getDefaultInsertColumn($column) {
