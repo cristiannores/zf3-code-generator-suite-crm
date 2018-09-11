@@ -467,7 +467,11 @@ if ( \$offset ){
     \$select->offset(\$offset);
 }
 
+// seting order if exists        
+if ( \$order ){
 
+    \$select->order(\$order);
+}
 
 \$this->debug_query(\$select);
 \$result = \$sql->prepareStatementForSqlObject(\$select)->execute();
@@ -546,6 +550,11 @@ EOD;
         $parameter = new \Zend\Code\Generator\ParameterGenerator();
         $parameter->setDefaultValue(null);
         $parameter->setName('offset');
+        $method->setParameter($parameter);
+        // agregeo el parametro offset
+        $parameter = new \Zend\Code\Generator\ParameterGenerator();
+        $parameter->setDefaultValue(null);
+        $parameter->setName('order');
         $method->setParameter($parameter);
         if ($this->table_cstm_exists) {
             $method->setBody($body_cstm);
@@ -986,11 +995,14 @@ AA;
         $body .= "\n"
                 . 'return (array) $data;';
 
-
+        $parameter = new Zend\Code\Generator\ParameterGenerator();
+        $parameter->setName('update');
+        $parameter->setDefaultValue(false);
         // Agregando metodo exchange array
         $method = new MethodGenerator();
         $method->setName('generateSetDefaultInsertValues');
         $method->setParameter('data');
+        $method->setParameter($parameter);
         $method->setDocBlock(DocBlockGenerator::fromArray([
                     'shortDescription' => 'Generate default Values for insert ' . $this->getCamelCase($this->actual_table),
                     'longDescription' => null,
@@ -1225,6 +1237,14 @@ BODY;
             case 'modified_user_id':
             case 'assigned_user_id':
                 $default = '$data->' . $column->getName() . ' =  ($id !== null) ? $id : $data->' . $column->getName() . '; ';
+            break;  
+        
+            case 'created_by': 
+                $default = 'if(!$update){';
+                
+                $default .="\t". '$data->' . $column->getName() . ' =  ($id !== null) ? $id : $data->' . $column->getName() . '; ';
+                $default .= "}";
+            break;
             default:
 
                 break;
