@@ -514,6 +514,11 @@ if ( \$offset ){
     \$select->offset(\$offset);
 }
 
+// seting order if exists        
+if ( \$order ){
+
+    \$select->order(\$order);
+}
 
 
 \$this->debug_query(\$select);
