@@ -800,7 +800,7 @@ AA;
                     . "\n"
                     . '}else{'
                     . "\n"
-                    . "\t" . 'return false;'
+                    . "\t" . '$result_cstm = [];'
                     . "\n"
                     . '}'
             ;
