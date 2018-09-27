@@ -19,10 +19,10 @@ class Database {
         if (!$driver) {
             $this->adapter = new Zend\Db\Adapter\Adapter([
                  'driver' => 'Pdo',
-                'dsn'    => 'mysql:dbname=crm;host=percona-db-prod;charset=utf8',
+                'dsn'    => 'mysql:dbname=crm_710;host=198.199.77.191;charset=utf8',
                 
-                'username' => 'crm',
-                'password' => 'RqDev8jp-', 
+                'username' => 'crm_dev',
+                'password' => 'f47uza', 
                 'options' => array(
                     'buffer_results' => true,
             )]);

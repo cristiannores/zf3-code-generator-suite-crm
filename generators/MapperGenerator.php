@@ -257,7 +257,7 @@ global \$sugar_config;
 }
         
 \$date_now_utc = (new \DateTime( 'now',  new \DateTimeZone( 'UTC' ) ));
-\$this->now = \$date_now_utc->format('Y-m-d h:i:s');
+\$this->now = \$date_now_utc->format('Y-m-d H:i:s');
 CONSTRUCTOR;
 
 
