@@ -394,7 +394,7 @@ if (count(\$values) < 1) {
 \$sql = new Sql(\$this->adapter);
 
 \$select = new Select('{$this->actual_table}');
-\$select->join('{$this->actual_table}_cstm', '{$this->actual_table}_cstm.id_c = {$this->actual_table}.id', [], \$select::JOIN_INNER);
+\$select->join('{$this->actual_table}_cstm', '{$this->actual_table}_cstm.id_c = {$this->actual_table}.id', '*', \$select::JOIN_INNER);
 \$select->where(\$values);
 \$select->limit(1);
 
@@ -452,7 +452,7 @@ if (count(\$values) < 1) {
 \$sql = new Sql(\$this->adapter);
 
 \$select = new Select('{$this->actual_table}');
-\$select->join('{$this->actual_table}_cstm', '{$this->actual_table}_cstm.id_c = {$this->actual_table}.id', [], \$select::JOIN_INNER);
+\$select->join('{$this->actual_table}_cstm', '{$this->actual_table}_cstm.id_c = {$this->actual_table}.id', '*', \$select::JOIN_INNER);
 \$select->where(\$values);
 
 // setting limit if exists
