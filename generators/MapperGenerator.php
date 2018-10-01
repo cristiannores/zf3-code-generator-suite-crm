@@ -1309,7 +1309,7 @@ BODY;
     }
 
     private function getTablesToGenerate() {
-        require __DIR__ . './tablesToGenerate.php';
+        require __DIR__ . '/tablesToGenerate.php';
         $this->tablesAllowed = $tables;
     }
 

@@ -1,7 +1,7 @@
 <?php
 
 use Zend\Debug\Debug;
-require __DIR__ . './core/core.php';
+require __DIR__ . '/core/core.php';
 
 
 use Symfony\Component\Console\Application;
