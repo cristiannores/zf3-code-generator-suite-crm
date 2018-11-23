@@ -75,9 +75,9 @@ class MapperGenerator {
                 continue;
             }
             //salto las tablas de relacion ( se generan por tabla ) 
-            if (substr($tableName, -4) === '_1_c') {
-                continue;
-            }
+           // if (substr($tableName, -4) === '_1_c') {
+            //    continue;
+           // }
 
             // Verifico si la tabla actual tiene tablas auxiliares
             $this->table_cstm_exists = false;
