@@ -576,7 +576,7 @@ EOD;
         // Agregando body de metodo store
         $body = "\n"
                 . '$find = $this->get($id);'
-                . "\n"
+               
                 . "\n"
                 . 'if(!$find){'
                 . "\n"
@@ -592,18 +592,25 @@ EOD;
                 . '$data_table = $this->unsetNullsInUpdate($data_table);'
                 . "\n"
                 . "\n"
-                . '$sql = new Sql($this->adapter);'
+                . '$affectedRows = 0;'
                 . "\n"
-                . '$update = new Update(\'' . $this->actual_table . '\');'
-                . "\n"
-                . '$update->set($data_table);'
-                . "\n"
-                . '$update->where([\'id\' => $id]);'
-                . "\n"
-                . '$this->debug_query($update);'
-                . "\n"
-                . '$result = $sql->prepareStatementForSqlObject($update)->execute();'
-                . "\n"
+                . 'if(count($data_table) > 0 ) {'
+                 . "\n"
+                . "\t". '$sql = new Sql($this->adapter);'
+                . "\t". "\n"
+                . "\t". '$update = new Update(\'' . $this->actual_table . '\');'
+                . "\t". "\n"
+                . "\t". '$update->set($data_table);'
+                . "\t". "\n"
+                . "\t". '$update->where([\'id\' => $id]);'
+                . "\t". "\n"
+                . "\t". '$this->debug_query($update);'
+                . "\t". "\n"
+                . "\t". '$result = $sql->prepareStatementForSqlObject($update)->execute();'
+                . "\t". "\n"
+                . "\t". '$affectedRows = $result->getAffectedRows();'
+                . "\t". "\n"
+                . '}'
         ;
 
         if ($this->table_cstm_exists) {
@@ -615,18 +622,28 @@ EOD;
                     . '$data_table_cstm = $this->unsetNullsInUpdate($data_table_cstm);'
                     . "\n"
                     . "\n"
-                    . '$sql = new Sql($this->adapter);'
                     . "\n"
-                    . '$update = new Update(\'' . $this->actual_table . '_cstm\');'
                     . "\n"
-                    . '$update->set($data_table_cstm);'
+                    . '$affectedRows_cstm = 0;'
                     . "\n"
-                    . '$update->where([\'id_c\' => $id]);'
-                    . "\n"
-                    . '$this->debug_query($update);'
-                    . "\n"
-                    . '$result_cstm = $sql->prepareStatementForSqlObject($update)->execute();'
-                    . "\n" . "\n";
+                    . 'if(count($data_table_cstm) > 0 ) {'
+                     . "\n"
+                     . "\t". '$sql = new Sql($this->adapter);'
+                     . "\t". "\n"
+                     . "\t". '$update = new Update(\'' . $this->actual_table . '_cstm\');'
+                     . "\t". "\n"
+                     . "\t". '$update->set($data_table_cstm);'
+                    . "\t" . "\n"
+                    . "\t" . '$update->where([\'id_c\' => $id]);'
+                     . "\t". "\n"
+                     . "\t". '$this->debug_query($update);'
+                     . "\t". "\n"
+                     . "\t". '$result_cstm = $sql->prepareStatementForSqlObject($update)->execute();'
+                     . "\t" .'$affectedRows_cstm = $result_cstm->getAffectedRows();'.  "\n" . "\n"
+                      ."} "
+                     . "\n"
+                    .''
+                    ;
 
 
             ;
@@ -637,23 +654,25 @@ EOD;
 
             if ($this->table_audit_exists) {
                 $body .= <<<AA
-if (( \$result->getAffectedRows() +  \$result_cstm->getAffectedRows() ) > 0 ){
+
+   \$resultAffectedRows = \$affectedRows +  \$affectedRows_cstm; 
+   if (\$resultAffectedRows > 0 ){
     \$audit = new $camelCaseAudit(\$find, array_merge(\$data_table, \$data_table_cstm), \$id, true, \$this->adapter);
     \$audit->generate();            
 }
-return \$result->getAffectedRows() +  \$result_cstm->getAffectedRows();                   
+return \$resultAffectedRows;                   
 AA;
             } else {
                 $body .= <<<AA
  
-return \$result->getAffectedRows() +  \$result_cstm->getAffectedRows();                   
+return (\$affectedRows +  \$affectedRows_cstm);                   
 AA;
             }
         } else {
 
             if ($this->table_audit_exists) {
                 $body .= <<<AA
-if ( \$result->getAffectedRows()  > 0 ){
+if ( \$affectedRows  > 0 ){
     \$audit = new $camelCaseAudit(\$find, array_merge(\$data_table), \$id, true, \$this->adapter) ;
     \$audit->generate();            
 }
@@ -662,7 +681,7 @@ AA;
             } else {
                 $body .= <<<AA
  
-return \$result->getAffectedRows();                                       
+return \$affectedRows;                                       
 AA;
             }
         }
