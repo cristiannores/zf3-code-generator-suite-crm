@@ -67,7 +67,9 @@ class ModelGenerator {
 
             $table = $this->metadata->getTable($tableName);
             $properties = [];
-            $bodyMethodExchangeArray = '';
+            $bodyMethodExchangeArray =  <<<AA
+    \$data = (object) \$data;
+AA;
             foreach ($table->getColumns() as $column) {
                 if ($column instanceof ColumnObject) {
 
@@ -82,13 +84,30 @@ class ModelGenerator {
 
                     // Agregando propiedad
                     $class->addPropertyFromGenerator($property);
+                    
+                    $bodyMethodExchangeArray .= <<<AA
+                            
+    if(property_exists(\$data, '{$column->getName()}')) {
+        \$this->{$column->getName()} = \$data->{$column->getName()};
+    }else{
+        \$this->{$column->getName()} =  'PROPERTY_NOT_SET';
+    }
+        
+AA;
 
+        
+    
+        
+        
+                   /* 
                     $bodyMethodExchangeArray .= "\n" . '$this->' . $column->getName() . ' = ';
                     $bodyMethodExchangeArray .= '(isset($data[\'' . $column->getName() . '\'])) ? ';
                     $bodyMethodExchangeArray .= '$data[\'' . $column->getName() . '\']';
                     $bodyMethodExchangeArray .= ':';
                     $bodyMethodExchangeArray .= $this->checkDateTypeColumn($column->getDataType()) . ';';
                     $bodyMethodExchangeArray .= ' //  ' . $column->getColumnDefault() . ' ' . $column->getDataType();
+                     
+                    */
                 }
 
 
@@ -105,6 +124,10 @@ class ModelGenerator {
                     }
                 }
             }
+            
+              $bodyMethodExchangeArray .=  <<<AA
+    \$data = (array) \$data;
+AA;
 
 
             $class->addMethodFromGenerator($this->generateConstructorMethod());

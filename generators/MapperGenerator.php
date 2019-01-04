@@ -279,6 +279,8 @@ CONSTRUCTOR;
                 . "\n"
                 . '$data_table = $this->generateSetDefaultInsertValues($data);'
                 . "\n"
+                . '$data_table = $this->unsetNullsInUpdate($data_table);'
+                . "\n"
                 . '$data_table[\'id\'] = $this->id;'
                 . "\n"
                 . "\n"
@@ -307,6 +309,9 @@ CONSTRUCTOR;
                     . '$data_table_cstm = ($data instanceof ' . $this->getCamelCase($this->actual_table) . 'CstmModel) ? (array) $data : (array) $this->setObjectDataCstm($data);'
                     . "\n"
                     . '$data_table_cstm[\'id_c\'] = $this->id;'
+                         . "\n"
+                      . '$data_table_cstm = $this->unsetNullsInUpdate($data_table_cstm);'
+                    . "\n"
                     . "\n"
                     . '$insert = new Insert(\'' . $this->actual_table . '_cstm' . '\');'
                     . "\n"
@@ -961,7 +966,7 @@ AA;
         $body = "\n"
                 . 'foreach ($data as $key => $value) {'
                 . "\n"
-                . "\t" . 'if (is_null($value)) {'
+                . "\t" . 'if ($value === "PROPERTY_NOT_SET") {'
                 . "\n"
                 . "\t" . "\t" . ' unset($data[$key]);'
                 . "\n"
