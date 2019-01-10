@@ -1264,8 +1264,10 @@ BODY;
                 $default = '$data->' . $column->getName() . ' = 0';
                 break;
             case 'modified_user_id':
-            case 'assigned_user_id':
                 $default = '$data->' . $column->getName() . ' =  ($id !== null) ? $id : $data->' . $column->getName() . '; ';
+                break;
+            case 'assigned_user_id':
+                $default = '$data->' . $column->getName() . ' =  (property_exists($data, "'.$column->getName().'")  ) ?  $data->' . $column->getName() . ' : $id; ';
             break;  
         
             case 'created_by': 
