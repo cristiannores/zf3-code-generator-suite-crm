@@ -253,8 +253,12 @@ global \$sugar_config;
  if (\$this->config['query_log']) {
 
     \$this->logger = new CustomLogger('sql-' . date('Y-m-d') . '.log');
-    \$this->init_log();
+   
 }
+                
+if (\$this->config['production_env']) {
+        \$this->logger = new CustomLogger('sql-' . date('Y-m-d') . '.log');
+    }                
         
 \$date_now_utc = (new \DateTime( 'now',  new \DateTimeZone( 'UTC' ) ));
 \$this->now = \$date_now_utc->format('Y-m-d H:i:s');
@@ -589,11 +593,24 @@ EOD;
                 . "\n"
                 . '}'
                 . "\n"
+                     . "\n"
+                .'global $current_user;'
+                . "\n"
+            
+           . "\n"
+        .   '$data = (array) $data;'
+                . "\n"
+           .'$data[\'date_modified\'] = $this->now;'
+                 . "\n"
+           .'$data[\'modified_user_id\'] = $current_user->id;'
+                . "\n"
+            
                 . "\n"
                 . '$data_table = ($data instanceof ' . $this->getCamelCase($this->actual_table) . 'Model ) ? (array) $data : (array) $this->setObjectData($data);'
                 . "\n"
                 . 'unset($data_table[\'id\']);'
                 . "\n"
+               
                 . '$data_table = $this->unsetNullsInUpdate($data_table);'
                 . "\n"
                 . "\n"
@@ -1189,9 +1206,26 @@ BODY;
         \$this->generate_html_beuty_query(\$query);
     }
 
-
-    \$this->logger->cochalog(\$query);
+                
+    
 }
+    if (\$this->config['production_env']) {
+                
+        \$query = \$object->getSqlString(\$this->adapter->getPlatform());
+            
+        \$a = debug_backtrace();
+        \$service_name = \$a[1]['class'];
+        \$method_name = \$a[2]['function'];
+
+        \$log = [
+            'class' => \$service_name,
+            'query' => \$query,
+            'method' => \$method_name,
+            'date' => \$this->now
+        ];
+
+        \$this->logger->cochalog(\$log, \$service_name, \$method_name, 'sql');
+    }
 
 BODY;
 
