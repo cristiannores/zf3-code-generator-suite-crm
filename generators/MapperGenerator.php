@@ -104,6 +104,7 @@ class MapperGenerator {
             $class->addProperty('id', null, PropertyGenerator::FLAG_PROTECTED);
             $class->addProperty('now', null, PropertyGenerator::FLAG_PROTECTED);
             $class->addProperty('logger', null, PropertyGenerator::FLAG_PROTECTED);
+            $class->addProperty('time_start',null, PropertyGenerator::FLAG_PROTECTED);
             $class->setName($this->getCamelCase($tableName) . 'MapperBase');
             $class->addUse('Zend\Db\Adapter\Adapter');
             $class->addUse('Zend\Db\Adapter\Driver\ResultInterface');
@@ -135,6 +136,7 @@ class MapperGenerator {
             $class->addMethodFromGenerator($this->generateInitLog());
             $class->addMethodFromGenerator($this->generateDebugQueryMethod());
             $class->addMethodFromGenerator($this->generateHtmlBeutyQuery());
+            $class->addMethodFromGenerator($this->generateExecuteSqlObject());
             // Verifico si tengo tablas de relacion
             $this->checkIfExistsRelationship($tableName);
             if ($this->table_relationship_exists) {
@@ -295,9 +297,8 @@ CONSTRUCTOR;
                 . "\n"
                 . '$insert->values($data_table);'
                 . "\n"
-                . '$this->debug_query($insert);'
                 . "\n"
-                . '$result = $sql->prepareStatementForSqlObject($insert)->execute();'
+                . '$result = $this->executeSqlObject($insert);'
                 . "\n"
                 . 'if ($result->getAffectedRows() === 0) {'
                 . "\n"
@@ -321,9 +322,8 @@ CONSTRUCTOR;
                     . "\n"
                     . '$insert->values($data_table_cstm);'
                     . "\n"
-                    . '$this->debug_query($insert);'
                     . "\n"
-                    . '$result_cstm = $sql->prepareStatementForSqlObject($insert)->execute();'
+                    . '$result_cstm = $this->executeSqlObject($insert);'
                     . "\n"
                     . 'if ($result_cstm->getAffectedRows() === 0) {'
                     . "\n"
@@ -371,9 +371,8 @@ if (count(\$values) < 1) {
 \$select->where(\$values);
 \$select->limit(1);
 
-\$this->debug_query(\$select);
                     
-\$result = \$sql->prepareStatementForSqlObject(\$select)->execute();
+\$result = \$this->executeSqlObject(\$select);
 
 if (\$result instanceof ResultInterface && \$result->isQueryResult()) {
 
@@ -407,9 +406,8 @@ if (count(\$values) < 1) {
 \$select->where(\$values);
 \$select->limit(1);
 
-\$this->debug_query(\$select);
 
-\$result = \$sql->prepareStatementForSqlObject(\$select)->execute();
+\$result = \$this->executeSqlObject(\$select);
 
 if (\$result instanceof ResultInterface && \$result->isQueryResult()) {
 
@@ -482,8 +480,7 @@ if ( \$order ){
     \$select->order(\$order);
 }
 
-\$this->debug_query(\$select);
-\$result = \$sql->prepareStatementForSqlObject(\$select)->execute();
+\$result = \$this->executeSqlObject(\$select);
 
 if (\$result instanceof ResultInterface && \$result->isQueryResult()) {
 
@@ -530,8 +527,7 @@ if ( \$order ){
 }
 
 
-\$this->debug_query(\$select);
-\$result = \$sql->prepareStatementForSqlObject(\$select)->execute();
+\$result = \$this->executeSqlObject(\$select);
 
 if (\$result instanceof ResultInterface && \$result->isQueryResult()) {
 
@@ -626,9 +622,8 @@ EOD;
                 . "\t". "\n"
                 . "\t". '$update->where([\'id\' => $id]);'
                 . "\t". "\n"
-                . "\t". '$this->debug_query($update);'
                 . "\t". "\n"
-                . "\t". '$result = $sql->prepareStatementForSqlObject($update)->execute();'
+                . "\t". '$result = $this->executeSqlObject($update);'
                 . "\t". "\n"
                 . "\t". '$affectedRows = $result->getAffectedRows();'
                 . "\t". "\n"
@@ -658,9 +653,8 @@ EOD;
                     . "\t" . "\n"
                     . "\t" . '$update->where([\'id_c\' => $id]);'
                      . "\t". "\n"
-                     . "\t". '$this->debug_query($update);'
                      . "\t". "\n"
-                     . "\t". '$result_cstm = $sql->prepareStatementForSqlObject($update)->execute();'
+                     . "\t". '$result_cstm = $this->executeSqlObject($update);'
                      . "\t" .'$affectedRows_cstm = $result_cstm->getAffectedRows();'.  "\n" . "\n"
                       ."} "
                      . "\n"
@@ -737,10 +731,9 @@ AA;
                 . "\t" . '$delete->where([\'id\' => $id]);'
                 . "\n"
                 . "\n"
-                . "\t" . '$this->debug_query($delete);'
                 . "\n"
                 . "\n"
-                . "\t" . '$result = $sql->prepareStatementForSqlObject($delete)->execute();'
+                . "\t" . '$result = $this->executeSqlObject($delete);'
                 . "\n"
                 . "\n";
 
@@ -749,9 +742,8 @@ AA;
                     . "\n"
                     . "\t" . '$delete_cstm->where([\'id_c\' => $id]);'
                     . "\n"
-                     . "\t" . '$this->debug_query($delete_cstm);'
                     . "\n"
-                    . "\t" . '$result_cstm = $sql->prepareStatementForSqlObject($delete_cstm)->execute();'
+                    . "\t" . '$result_cstm = $this->executeSqlObject($delete_cstm);'
                     . "\n"
                     . "\t" . 'return $result->getAffectedRows();'
                     . "\n";
@@ -765,9 +757,8 @@ AA;
                 . "\n"
                 . "\t" . '$delete_soft->where([\'id\' => $id]);'
                 . "\n"
-                . '$this->debug_query($delete_soft);'
                 . "\n"
-                . "\t" . '$result = $sql->prepareStatementForSqlObject($delete_soft)->execute();'
+                . "\t" . '$result = $this->executeSqlObject($delete_soft);'
                 . "\n"
                 . "\t" . 'return $result->getAffectedRows();'
                 . "\n"
@@ -810,9 +801,8 @@ AA;
                 . "\n"
                 . '$select->where([\'id\' => $id]);'
                 . "\n"
-                . '$this->debug_query($select);'
                 . "\n"
-                . '$result = $sql->prepareStatementForSqlObject($select)->execute();'
+                . '$result = $this->executeSqlObject($select);'
                 . "\n"
                 . 'if ( $result->count() > 0){'
                 . "\n"
@@ -831,9 +821,8 @@ AA;
                     . "\n"
                     . '$select_cstm->where([\'id_c\' => $id]);'
                     . "\n"
-                    . '$this->debug_query($select_cstm);'
                     . "\n"
-                    . '$result_cstm = $sql->prepareStatementForSqlObject($select_cstm)->execute();'
+                    . '$result_cstm = $this->executeSqlObject($select_cstm);'
                     . "\n"
                     . 'if ( $result_cstm->count() > 0){'
                     . "\n"
@@ -880,9 +869,8 @@ AA;
                 . "\n"
                 . '$select = new Select(\'' . $this->actual_table . '\');'
                 . "\n"
-                . '$this->debug_query($select);'
                 . "\n"
-                . '$result = $sql->prepareStatementForSqlObject($select)->execute();'
+                . '$result = $this->executeSqlObject($select);'
                 . "\n"
                 . 'if ($result instanceof ResultInterface && $result->isQueryResult()) {'
                 . "\n"
@@ -1157,9 +1145,8 @@ AA;
                     . "\n"
                     . '$insert->values($data);'
                     . "\n"
-                    . "\$this->debug_query(\$insert);"
                     . "\n"
-                    . '$result = $sql->prepareStatementForSqlObject($insert)->execute();'
+                    . '$result = $this->executeSqlObject($insert);'
                     . "\n"
                     . 'if ($result->getAffectedRows() > 0) {'
                     . "\n"
@@ -1200,32 +1187,42 @@ BODY;
  if (\$this->config['query_log']) {
     if (!\$isRaw) {
         \$query = \$object->getSqlString(\$this->adapter->getPlatform());
+    }else{
+        \$query = \$object;
     }
 
     if (!\$this->config['production_env']) {
         \$this->generate_html_beuty_query(\$query);
     }
-
-                
-    
 }
-    if (\$this->config['production_env']) {
-                
-        \$query = \$object->getSqlString(\$this->adapter->getPlatform());
+
+if (\$this->config['production_env']) {
             
-        \$a = debug_backtrace();
-        \$service_name = \$a[1]['class'];
-        \$method_name = \$a[2]['function'];
-
-        \$log = [
-            'class' => \$service_name,
-            'query' => \$query,
-            'method' => \$method_name,
-            'date' => \$this->now
-        ];
-
-        \$this->logger->cochalog(\$log, \$service_name, \$method_name, 'sql');
+    if (!\$isRaw) {
+        \$query = \$object->getSqlString(\$this->adapter->getPlatform());
+    }else{
+        \$query = \$object;
     }
+        
+    \$a = debug_backtrace();
+    \$service_name = \$a[1]['class'];
+    \$method_name = \$a[2]['function'];
+
+    \$log = [
+        'class' => \$service_name,
+        'query' => \$query,
+        'method' => \$method_name,
+        'date' => \$this->now
+    ];
+
+    \$elapsed_time = 0;
+    if(\$this->\$time_start > 0){
+        \$time_end = microtime(true);
+        \$elapsed_time = (\$time_end - \$this->\$time_start);
+    }
+
+    \$this->logger->cochalog(\$log, \$service_name, \$method_name,'sql',Google\\Cloud\\Logging\\Logger::DEBUG, \$elapsed_time);
+}
 
 BODY;
 
@@ -1250,9 +1247,6 @@ BODY;
 \$id = serialize(\$a[1]['class'] . \$a[2]['function']);
 \$element[\$id] = [];
 
-
-
-
 \$query_arrays = json_decode(file_get_contents(\$file_name_arr), true);
 if (\$query_arrays == null || !is_array(\$query_arrays)) {
     \$query_arrays = [];
@@ -1263,15 +1257,19 @@ if (!is_array(\$query_arrays[\$id])) {
     \$query_arrays[\$id] = [];
 }
 
+\$elapsed_time = 0;
+if(\$this->\$time_start > 0){
+    \$time_end = microtime(true);
+    \$elapsed_time = (\$time_end - \$this->\$time_start);
+}
+
 \$query_arrays[\$id][] = [
     'class' => \$a[1]['class'],
     'query' => \$query,
-    'method' =>\$a[2]['function'],
-    'date' => \$now->format('Y-m-d H:i:s')
+    'method' =>\$a[3]['function'],
+    'date' => \$now->format('Y-m-d H:i:s'),
+    'execution_time' => \$elapsed_time
 ];
-
-
-
 
 file_put_contents(\$file_name_arr, json_encode(\$query_arrays));
 BODY;
@@ -1283,6 +1281,39 @@ BODY;
         $method->setVisibility($method::VISIBILITY_PUBLIC);
         return $method;
     }
+
+    private function generateExecuteSqlObject() {
+        $body = <<<BODY
+\$this->\$time_start = microtime(true);
+if( \$query instanceof Zend\\Db\\Sql\\Delete ||
+    \$query instanceof Zend\\Db\\Sql\\Insert ||
+    \$query instanceof Zend\\Db\\Sql\\Select ||
+    \$query instanceof Zend\\Db\\Sql\\Update ||
+    \$query instanceof Zend\\Db\\Sql\\Sql ){
+    \$sql = new Sql(\$this->adapter);
+    \$resp = \$sql->prepareStatementForSqlObject(\$query)->execute();
+    \$this->debug_query(\$query);
+}elseif(is_string(\$query)){
+    \$resp = \$this->adapter->query(\$query)->execute();
+    \$this->debug_query(\$query,true);
+}else{
+    throw new Exception('Query debe ser instancia de Zend\\Db\\Sql\\* o un RAW query string');
+}
+return \$resp;
+BODY;
+        $method = new MethodGenerator();
+        $method->setName('executeSqlObject');
+        $method->setBody($body);
+        $method->setParameter('query');
+        $method->setDocBlock(DocBlockGenerator::fromArray([
+            'shortDescription' => 'Ejecuta un objeto Sql',
+            'longDescription' => null,
+        ]));
+
+        $method->setVisibility($method::VISIBILITY_PUBLIC);
+        return $method;
+    }
+
 
     private function getDefaultInsertColumn($column) {
 
