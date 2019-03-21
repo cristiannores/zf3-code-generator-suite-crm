@@ -1277,7 +1277,6 @@ BODY;
         $method->setName('generate_html_beuty_query');
         $method->setBody($body);
         $method->setParameter('query');
-
         $method->setVisibility($method::VISIBILITY_PUBLIC);
         return $method;
     }
@@ -1294,7 +1293,7 @@ if( \$query instanceof Zend\\Db\\Sql\\Delete ||
     \$resp = \$sql->prepareStatementForSqlObject(\$query)->execute();
     \$this->debug_query(\$query);
 }elseif(is_string(\$query)){
-    \$resp = \$this->adapter->query(\$query)->execute();
+    \$resp = \$this->adapter->query(\$query, \$bindParams);
     \$this->debug_query(\$query,true);
 }else{
     throw new Exception('Query debe ser instancia de Zend\\Db\\Sql\\* o un RAW query string');
@@ -1305,6 +1304,10 @@ BODY;
         $method->setName('executeSqlObject');
         $method->setBody($body);
         $method->setParameter('query');
+        $bindParams = new Zend\Code\Generator\ParameterGenerator();
+        $bindParams->setName('bindParams');
+        $bindParams->setDefaultValue([]);
+        $method->setParameter($bindParams);
         $method->setDocBlock(DocBlockGenerator::fromArray([
             'shortDescription' => 'Ejecuta un objeto Sql',
             'longDescription' => null,
