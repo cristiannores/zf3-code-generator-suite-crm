@@ -1216,9 +1216,9 @@ if (\$this->config['production_env']) {
     ];
 
     \$elapsed_time = 0;
-    if(\$this->\$time_start > 0){
+    if(\$this->time_start > 0){
         \$time_end = microtime(true);
-        \$elapsed_time = (\$time_end - \$this->\$time_start);
+        \$elapsed_time = (\$time_end - \$this->time_start);
     }
 
     \$this->logger->cochalog(\$log, \$service_name, \$method_name,'sql',Google\\Cloud\\Logging\\Logger::DEBUG, \$elapsed_time);
@@ -1258,9 +1258,9 @@ if (!is_array(\$query_arrays[\$id])) {
 }
 
 \$elapsed_time = 0;
-if(\$this->\$time_start > 0){
+if(\$this->time_start > 0){
     \$time_end = microtime(true);
-    \$elapsed_time = (\$time_end - \$this->\$time_start);
+    \$elapsed_time = (\$time_end - \$this->time_start);
 }
 
 \$query_arrays[\$id][] = [
@@ -1283,7 +1283,7 @@ BODY;
 
     private function generateExecuteSqlObject() {
         $body = <<<BODY
-\$this->\$time_start = microtime(true);
+\$this->time_start = microtime(true);
 if( \$query instanceof Zend\\Db\\Sql\\Delete ||
     \$query instanceof Zend\\Db\\Sql\\Insert ||
     \$query instanceof Zend\\Db\\Sql\\Select ||
