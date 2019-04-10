@@ -1184,45 +1184,65 @@ BODY;
 
     private function generateDebugQueryMethod() {
         $body = <<<BODY
- if (\$this->config['query_log']) {
-    if (!\$isRaw) {
-        \$query = \$object->getSqlString(\$this->adapter->getPlatform());
-    }else{
-        \$query = \$object;
-    }
+  if (in_array(getenv('ENVIRONMENT'), ['production', 'qa', 'training', 'staging'])) { 
 
-    if (!\$this->config['production_env']) {
-        \$this->generate_html_beuty_query(\$query);
-    }
-}
+            if (!\$isRaw) {
+                \$query = \$object->getSqlString(\$this->adapter->getPlatform());
+            } else {
+                \$query = \$object;
+            }
 
-if (\$this->config['production_env']) {
+            \$a = debug_backtrace();
+            \$service_name = \$a[1]['class'];
+            \$method_name = \$a[2]['function'];
+
+            \$log = [
+                'class' => \$service_name,
+                'query' => \$query,
+                'method' => \$method_name,
+                'date' => \$this->now
+            ];
+
+            \$elapsed_time = 0;
+            if (\$this->time_start > 0) {
+                \$time_end = microtime(true);
+                \$elapsed_time = (\$time_end - \$this->time_start);
+            }
+
+            \$this->logger->cochalog(\$log, \$service_name, \$method_name, 'sql', Google\Cloud\Logging\Logger::DEBUG, \$elapsed_time);
+        } else { // desarrollo
             
-    if (!\$isRaw) {
-        \$query = \$object->getSqlString(\$this->adapter->getPlatform());
-    }else{
-        \$query = \$object;
-    }
-        
-    \$a = debug_backtrace();
-    \$service_name = \$a[1]['class'];
-    \$method_name = \$a[2]['function'];
+            if (\$this->config['query_log']) {
 
-    \$log = [
-        'class' => \$service_name,
-        'query' => \$query,
-        'method' => \$method_name,
-        'date' => \$this->now
-    ];
+                if (!\$isRaw) {
+                    \$query = \$object->getSqlString(\$this->adapter->getPlatform());
+                } else {
+                    \$query = \$object;
+                }
 
-    \$elapsed_time = 0;
-    if(\$this->time_start > 0){
-        \$time_end = microtime(true);
-        \$elapsed_time = (\$time_end - \$this->time_start);
-    }
 
-    \$this->logger->cochalog(\$log, \$service_name, \$method_name,'sql',Google\\Cloud\\Logging\\Logger::DEBUG, \$elapsed_time);
-}
+                \$this->generate_html_beuty_query(\$query);
+                
+                \$a = debug_backtrace();
+                \$service_name = \$a[1]['class'];
+                \$method_name = \$a[2]['function'];
+
+                \$log = [
+                    'class' => \$service_name,
+                    'query' => \$query,
+                    'method' => \$method_name,
+                    'date' => \$this->now
+                ];
+
+                \$elapsed_time = 0;
+                if (\$this->time_start > 0) {
+                    \$time_end = microtime(true);
+                    \$elapsed_time = (\$time_end - \$this->time_start);
+                }
+
+                \$this->logger->cochalog(\$log, \$service_name, \$method_name, 'sql', Google\Cloud\Logging\Logger::DEBUG, \$elapsed_time);
+            }
+        }
 
 BODY;
 
